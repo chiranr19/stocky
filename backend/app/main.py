@@ -61,7 +61,7 @@ def root() -> dict[str, object]:
         "version": __version__,
         "disclaimer": "Educational tool. Not financial advice.",
         "endpoints": [
-            "/overview", "/sectors", "/movers", "/riskmap", "/signals",
+            "/overview", "/sectors", "/movers", "/radar", "/riskmap", "/signals",
             "/compare", "/stock/{ticker}", "/calendar",
             "/timemachine", "/universe", "/health/data", "/docs",
         ],

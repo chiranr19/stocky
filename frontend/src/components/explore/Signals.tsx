@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { TrendingDown, TrendingUp } from "lucide-react";
 import type { SignalsResponse, StockRow } from "@/lib/types";
 import { fmtDate } from "@/lib/format";
@@ -89,7 +90,15 @@ export function Signals({ data }: { data: SignalsResponse }) {
         title="Oversold (RSI ≤ 30)"
         termKey="rsi"
         tone="down"
-        blurb="Stretched to the downside. Sometimes a bounce sets up here — sometimes it keeps falling."
+        blurb={
+          <>
+            Stretched to the downside. Oversold says <i>stretched</i> — the{" "}
+            <Link href="/radar" className="text-accent hover:underline">
+              Entry Radar
+            </Link>{" "}
+            adds trend context and what historically happened next.
+          </>
+        }
         rows={data.oversold}
         extra={(r) => <span className="tnum text-xs text-ink">{r.rsi14?.toFixed(0)}</span>}
       />

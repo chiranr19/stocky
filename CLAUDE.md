@@ -59,6 +59,9 @@ Built (v0.2):
 - `GET /calendar` — upcoming earnings (best-effort) + static macro dates
 - `GET /universe` — full searchable ticker list (⌘K); `GET /health/data` — warm-up progress + freshness
 
+Built (v0.3):
+- `GET /radar?budget=&lookback=1m|2m|3m&limit=` — **Entry Radar**: affordable stocks ≥5% below their lookback high, ranked by entry score (depth 35 · trend 30 · RSI 20 · quality 15, `RADAR_WEIGHTS`), each with **echo stats** — forward 21-session outcomes of that stock's own similar past episodes (same depth bucket + trend state; N≥6 or null). `services/radar.py` + radar helpers in `services/metrics.py`; `/stock/{ticker}` now carries `entry`. Copy rule: *setups to study*, never buy signals; every echo shows N and the worst case.
+
 Planned: `GET /cone?ticker=` (Monte Carlo bands), `GET /brief` (Daily Brief text).
 
 ## v0.2 architecture notes
@@ -66,7 +69,8 @@ Planned: `GET /cone?ticker=` (Monte Carlo bands), `GET /brief` (Daily Brief text
 - **Warm-up:** on startup a background thread ingests the whole universe in ~100-ticker chunks, **priority tickers first** (`WARM_ON_START`); progress + freshness via `/health/data`.
 - **Analytics:** pure/tested math in `services/metrics.py` (RSI Wilder, MAs, crosses, vol, returns, correlation, histograms) + `services/screener.py` (per-sector percentile scoring); orchestrated in `services/analytics.py` with an in-process metrics cache keyed by (data date, warm progress). Read-only over cached DuckDB rows — never fetches inline.
 - **Correctness rule:** raw `close` for prices/affordability/gaps; `adj_close` for returns/volatility.
-- **Frontend routes:** `/` Pulse · `/explore` · `/compare` · `/stock/[ticker]` · `/time-machine` · `/calendar`. Global budget via `lib/budget.tsx`; teaching via `lib/glossary.ts` + `components/ui/Term.tsx`.
+- **Frontend routes:** `/` Pulse · `/radar` Entry Radar · `/explore` · `/compare` · `/stock/[ticker]` · `/time-machine` · `/calendar`. Global budget via `lib/budget.tsx`; teaching via `lib/glossary.ts` + `components/ui/Term.tsx`.
+- **History depth:** `market.HISTORY_LOOKBACK` = 1200 days (~3.3y) so radar echo stats have a real sample; widening it again forces a one-time universe back-fill.
 
 ## User context
 - Beginner investor; risk tolerance moderate; separately keeping core money in index funds — this app informs only a small "conviction" allocation

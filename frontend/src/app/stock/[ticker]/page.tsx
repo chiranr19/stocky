@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Clock, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock, Crosshair, TrendingDown, TrendingUp } from "lucide-react";
 import { getStock } from "@/lib/api";
 import type { StockDetail } from "@/lib/types";
 import { fmtCompact, fmtCurrency, fmtPct, toneClass } from "@/lib/format";
@@ -11,6 +11,7 @@ import { ChangePct, RangeBar, ScoreBadge, StatTile } from "@/components/ui/primi
 import { Term } from "@/components/ui/Term";
 import { ErrorCard, Loading } from "@/components/ui/States";
 import { CandleChart } from "@/components/stock/CandleChart";
+import { EchoChip, KnifeChip } from "@/components/radar/RadarList";
 import { RsiPanel } from "@/components/stock/RsiPanel";
 import { FundamentalsCard } from "@/components/stock/FundamentalsCard";
 import { DistributionBars } from "@/components/compare/DistributionBars";
@@ -105,6 +106,43 @@ export default function StockPage() {
             <Term k="dollar_volume">$Vol</Term> {fmtCompact(r.avg_dollar_volume)}
           </span>
         </div>
+      </div>
+
+      {/* Entry position (Entry Radar lens, 3M lookback) */}
+      <div className="card flex flex-wrap items-center gap-x-6 gap-y-3 p-4">
+        <div className="flex items-center gap-2">
+          <Crosshair className="h-4 w-4 text-accent" />
+          <h3 className="text-sm font-semibold tracking-tight">
+            <Term k="pullback">Entry position</Term>
+          </h3>
+        </div>
+        {data.entry ? (
+          <>
+            <div className="text-xs text-muted">
+              <span className="tnum font-semibold text-down">
+                −{data.entry.depth_pct.toFixed(1)}%
+              </span>{" "}
+              below its 3-month high — deeper than{" "}
+              <span className="tnum text-ink">{data.entry.depth_rank.toFixed(0)}%</span>{" "}
+              of its own history
+            </div>
+            {data.entry.falling_knife && <KnifeChip />}
+            <div className="ml-auto flex items-center gap-4">
+              <EchoChip r={data.entry} />
+              <Link
+                href="/radar"
+                className="flex items-center gap-1 text-xs text-muted transition-colors hover:text-accent"
+              >
+                All setups <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </>
+        ) : (
+          <p className="text-xs text-faint">
+            No meaningful <Term k="pullback">pullback</Term> right now — {data.ticker} is
+            trading within ~5% of its 3-month high (or has too little history to judge).
+          </p>
+        )}
       </div>
 
       {/* Candles + RSI */}

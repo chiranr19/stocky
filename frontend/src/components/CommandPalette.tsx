@@ -3,15 +3,25 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
-import { BarChart3, Clock, GitCompare, Search, TrendingUp } from "lucide-react";
+import {
+  BarChart3,
+  CalendarDays,
+  Clock,
+  Crosshair,
+  GitCompare,
+  Search,
+  TrendingUp,
+} from "lucide-react";
 import { getUniverse } from "@/lib/api";
 import type { UniverseItem } from "@/lib/types";
 
 const PAGES = [
   { label: "Pulse — market overview", href: "/", icon: BarChart3 },
+  { label: "Entry Radar — pullback setups", href: "/radar", icon: Crosshair },
   { label: "Explore — scanners, risk map, signals", href: "/explore", icon: TrendingUp },
   { label: "Compare stocks", href: "/compare", icon: GitCompare },
   { label: "Time Machine", href: "/time-machine", icon: Clock },
+  { label: "Calendar — earnings & macro dates", href: "/calendar", icon: CalendarDays },
 ];
 
 export function CommandPalette() {

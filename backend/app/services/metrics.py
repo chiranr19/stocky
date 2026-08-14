@@ -153,6 +153,102 @@ def return_histogram(adj_close: pd.Series, bins: int = 21, clip_pct: float = 8.0
 
 
 # --------------------------------------------------------------------------- #
+# Entry Radar building blocks (pullback setups + historical echoes)
+# --------------------------------------------------------------------------- #
+@dataclass(frozen=True)
+class EchoStats:
+    """What actually happened after past setups that looked like today's.
+
+    Descriptive statistics over this stock's own history — base rates with the
+    sample size and worst case always attached, never a prediction.
+    """
+
+    n: int
+    median_fwd_pct: float
+    win_rate: float  # share of episodes with a positive forward return, 0-1
+    worst_pct: float
+    best_pct: float
+
+
+def rolling_high(series: pd.Series, window: int) -> pd.Series:
+    """Rolling max over ``window`` sessions (min_periods=window)."""
+    return series.rolling(window, min_periods=window).max()
+
+
+def pullback_series(adj_close: pd.Series, window: int) -> pd.Series:
+    """% below the rolling ``window``-session high at each day (≥ 0)."""
+    high = rolling_high(adj_close, window)
+    return ((high - adj_close) / high * 100.0).clip(lower=0.0)
+
+
+def forward_returns(adj_close: pd.Series, horizon: int) -> pd.Series:
+    """% return ``horizon`` sessions ahead of each day (NaN for the last ones)."""
+    fwd = adj_close.shift(-horizon)
+    return (fwd / adj_close - 1.0) * 100.0
+
+
+def depth_bucket(
+    depth: float, buckets: list[tuple[float, float]]
+) -> tuple[float, float] | None:
+    """The [lo, hi) bucket ``depth`` falls into, or None below the first edge."""
+    for lo, hi in buckets:
+        if lo <= depth < hi:
+            return (lo, hi)
+    return None
+
+
+def find_setup_episodes(
+    depth: pd.Series,
+    above_ma200: pd.Series,
+    bucket: tuple[float, float],
+    trend_state: bool,
+    min_gap: int,
+) -> list[pd.Timestamp]:
+    """Start dates of past episodes matching today's setup.
+
+    A day matches when its pullback depth is in ``bucket`` AND its trend state
+    (above/below MA200) equals ``trend_state``. Consecutive matching days
+    collapse into one episode (first day counts); episode starts must be at
+    least ``min_gap`` sessions apart so choppy re-entries aren't double-counted.
+    """
+    lo, hi = bucket
+    match = (depth >= lo) & (depth < hi) & (above_ma200 == trend_state)
+    match = match.fillna(False)
+
+    episodes: list[pd.Timestamp] = []
+    last_start_pos: int | None = None
+    prev = False
+    for pos, (ts, is_match) in enumerate(match.items()):
+        if is_match and not prev:  # first day of a run
+            if last_start_pos is None or pos - last_start_pos >= min_gap:
+                episodes.append(ts)
+                last_start_pos = pos
+        prev = bool(is_match)
+    return episodes
+
+
+def echo_stats(
+    adj_close: pd.Series,
+    episodes: list[pd.Timestamp],
+    horizon: int,
+    min_episodes: int,
+) -> EchoStats | None:
+    """Forward-return stats over episode starts; None when the sample is too thin."""
+    fwd = forward_returns(adj_close, horizon)
+    outcomes = [float(fwd.loc[ts]) for ts in episodes if ts in fwd.index and not np.isnan(fwd.loc[ts])]
+    if len(outcomes) < min_episodes:
+        return None
+    arr = np.array(outcomes)
+    return EchoStats(
+        n=len(arr),
+        median_fwd_pct=round(float(np.median(arr)), 2),
+        win_rate=round(float((arr > 0).mean()), 3),
+        worst_pct=round(float(arr.min()), 2),
+        best_pct=round(float(arr.max()), 2),
+    )
+
+
+# --------------------------------------------------------------------------- #
 # One-shot per-stock metrics
 # --------------------------------------------------------------------------- #
 def compute_metrics(ticker: str, df: pd.DataFrame) -> StockMetrics | None:

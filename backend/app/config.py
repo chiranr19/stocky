@@ -186,5 +186,22 @@ SCORE_WEIGHTS = {
     "liquidity": 0.10,  # dollar-volume percentile
 }
 
+# Entry Radar: pullback-setup analysis. All knobs surfaced in the UI so the
+# formula is fully inspectable — setups to study, never buy signals.
+RADAR_WEIGHTS = {
+    "depth": 0.35,    # own-history percentile of today's pullback depth
+    "trend": 0.30,    # above MA200 = intact trend, below = falling knife
+    "rsi": 0.20,      # lower RSI → more washed-out → higher
+    "quality": 0.15,  # 1-year return percentile among eligible (dip in a strong stock)
+}
+RADAR_MIN_DEPTH_PCT = 5.0  # below this it isn't a pullback worth studying
+RADAR_DEPTH_BUCKETS: list[tuple[float, float]] = [
+    (5.0, 10.0), (10.0, 15.0), (15.0, 20.0), (20.0, 30.0), (30.0, 100.0),
+]
+RADAR_FORWARD_DAYS = 21     # forward horizon for historical echo stats (~1 month)
+RADAR_MIN_EPISODES = 6      # fewer similar past setups than this → "not enough history"
+RADAR_EPISODE_GAP = 10      # min sessions between counted episode starts
+RADAR_LOOKBACKS = {"1m": 21, "2m": 42, "3m": 63}
+
 # Data-quality guard: a single-day move larger than this is logged as an anomaly.
 ANOMALY_DAY_MOVE_PCT = 40.0

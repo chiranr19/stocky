@@ -31,9 +31,10 @@ from ..db import db_lock
 
 _PRICE_COLUMNS = ["ticker", "date", "open", "high", "low", "close", "adj_close", "volume"]
 
-# Lookback deep enough for MA200 (~290 calendar days) and 1-year total return
-# simultaneously, with a weekend/holiday buffer.
-HISTORY_LOOKBACK = dt.timedelta(days=460)
+# Lookback deep enough for the Entry Radar's historical-echo study: MA200
+# warm-up (~290 calendar days) + ~2 years of detectable setups + the forward
+# window. Widening this triggers a one-time universe back-fill on next warm-up.
+HISTORY_LOOKBACK = dt.timedelta(days=1200)
 
 
 class MarketDataError(RuntimeError):

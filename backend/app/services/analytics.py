@@ -60,7 +60,7 @@ _TD_1Y = 252
 # Universe-wide metrics cache
 # --------------------------------------------------------------------------- #
 _lock = threading.Lock()
-_cache: dict = {"key": None, "metrics": {}, "latest": None}
+_cache: dict = {"key": None, "metrics": {}, "latest": None, "closes": {}}
 _screen_cache: dict = {"key": None, "by_budget": {}}
 
 
@@ -71,20 +71,24 @@ def _max_date() -> dt.date | None:
         return con.execute("SELECT MAX(date) FROM prices").fetchone()[0]
 
 
-def _load_metrics() -> tuple[dict[str, StockMetrics], dt.date | None]:
+def _load_metrics() -> tuple[dict[str, StockMetrics], dt.date | None, dict[str, pd.Series]]:
     end = dt.date.today()
     start = end - _ANALYSIS_LOOKBACK
     histories = market.read_cached(market.ALL_TICKERS, start, end)
 
     metrics: dict[str, StockMetrics] = {}
+    closes: dict[str, pd.Series] = {}
     latest: dt.date | None = None
     for ticker, df in histories.items():
         m = compute_metrics(ticker, df)
         if m is not None:
             metrics[ticker] = m
+            # Retained for the Entry Radar (pullback depth + historical echoes)
+            # so it never has to re-query DuckDB per request.
+            closes[ticker] = df["adj_close"].dropna()
         d = df.index.max().date()
         latest = d if latest is None else max(latest, d)
-    return metrics, latest
+    return metrics, latest, closes
 
 
 def universe_metrics() -> tuple[dict[str, StockMetrics], dt.date]:
@@ -93,11 +97,18 @@ def universe_metrics() -> tuple[dict[str, StockMetrics], dt.date]:
     with _lock:
         if _cache["key"] == key and _cache["metrics"]:
             return _cache["metrics"], _cache["latest"]
-    metrics, latest = _load_metrics()
+    metrics, latest, closes = _load_metrics()
     latest = latest or dt.date.today()
     with _lock:
-        _cache.update(key=key, metrics=metrics, latest=latest)
+        _cache.update(key=key, metrics=metrics, latest=latest, closes=closes)
     return metrics, latest
+
+
+def universe_closes() -> dict[str, pd.Series]:
+    """Adj-close series per ticker, same cache generation as universe_metrics()."""
+    universe_metrics()  # ensure the cache is warm/current
+    with _lock:
+        return _cache["closes"]
 
 
 def _sector_scores(budget: float | None) -> dict[str, list[ScoredStock]]:
@@ -481,6 +492,9 @@ def build_stock_detail(ticker: str) -> StockDetail:
         else {"counts": [], "edges": []}
     )
 
+    # Local import: radar depends on this module, so the reverse edge stays lazy.
+    from .radar import radar_for_ticker
+
     return StockDetail(
         ticker=ticker,
         name=display_name(ticker),
@@ -493,4 +507,5 @@ def build_stock_detail(ticker: str) -> StockDetail:
         rsi=_pts(rsi_s),
         histogram=hist,
         benchmark_histogram=bench_hist,
+        entry=radar_for_ticker(ticker),
     )

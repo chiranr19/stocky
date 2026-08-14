@@ -10,16 +10,18 @@ from ..config import DEFAULT_BUDGET
 from ..models import (
     CompareResponse,
     OverviewResponse,
+    RadarResponse,
     RiskMapResponse,
     SectorsResponse,
     SignalsResponse,
     StockRow,
 )
-from ..services import analytics
+from ..services import analytics, radar
 
 router = APIRouter(tags=["analytics"])
 
 MoverType = Literal["gainers", "losers", "volume", "highs", "lows", "gaps"]
+RadarLookback = Literal["1m", "2m", "3m"]
 
 
 def resolve_budget(budget: float | None) -> float | None:
@@ -58,6 +60,16 @@ def riskmap(budget: float | None = Query(None)) -> RiskMapResponse:
 @router.get("/signals", response_model=SignalsResponse)
 def signals(budget: float | None = Query(None)) -> SignalsResponse:
     return analytics.build_signals(resolve_budget(budget))
+
+
+@router.get("/radar", response_model=RadarResponse)
+def entry_radar(
+    budget: float | None = Query(None, description="Max share price; ≤0 = no cap."),
+    lookback: RadarLookback = Query("3m", description="Pullback window: 1m/2m/3m."),
+    limit: int = Query(30, ge=1, le=100),
+) -> RadarResponse:
+    """Pullback setups ranked by entry score, with historical echo stats."""
+    return radar.build_radar(resolve_budget(budget), lookback, limit)
 
 
 @router.get("/compare", response_model=CompareResponse)

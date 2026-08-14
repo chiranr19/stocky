@@ -228,6 +228,40 @@ class SignalsResponse(BaseModel):
 
 
 # --------------------------------------------------------------------------- #
+# Analytics: Entry Radar (pullback setups + historical echoes)
+# --------------------------------------------------------------------------- #
+class EchoStats(BaseModel):
+    """Forward outcomes of past setups like today's — base rates, not predictions."""
+
+    n: int = Field(description="How many similar past episodes were found.")
+    median_fwd_pct: float = Field(description="Median return over the next ~month.")
+    win_rate: float = Field(description="Share of episodes that ended positive, 0-1.")
+    worst_pct: float
+    best_pct: float
+
+
+class RadarRow(BaseModel):
+    row: StockRow
+    depth_pct: float = Field(description="% below the lookback-window high today.")
+    depth_rank: float = Field(
+        description="Percentile of today's depth within this stock's own history."
+    )
+    falling_knife: bool = Field(description="True when trading below its MA200.")
+    entry_score: float
+    entry_factors: dict[str, float]  # depth, trend, rsi, quality (0-100)
+    echo: EchoStats | None = None  # None = not enough similar history
+
+
+class RadarResponse(BaseModel):
+    as_of: date
+    budget: float | None
+    lookback: str  # '1m' | '2m' | '3m'
+    horizon_days: int
+    weights: dict[str, float]
+    rows: list[RadarRow]
+
+
+# --------------------------------------------------------------------------- #
 # Analytics: compare
 # --------------------------------------------------------------------------- #
 class CompareSeries(BaseModel):
@@ -284,6 +318,7 @@ class StockDetail(BaseModel):
     rsi: list[SeriesPoint]
     histogram: dict
     benchmark_histogram: dict
+    entry: RadarRow | None = None  # Entry Radar position (3M lookback)
 
 
 class Fundamentals(BaseModel):

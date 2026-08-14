@@ -12,7 +12,7 @@ const TABS: { key: string; label: string; hint: string }[] = [
   { key: "losers", label: "Losers", hint: "Biggest % down today." },
   { key: "volume", label: "Unusual volume", hint: "Trading far above their normal volume — someone cares today." },
   { key: "highs", label: "52w highs", hint: "At the top of their 1-year range — momentum, or overextended?" },
-  { key: "lows", label: "52w lows", hint: "At the bottom — out of favor, or a falling knife?" },
+  { key: "lows", label: "52w lows", hint: "At the bottom — out of favor, or a falling knife? Entry Radar (/radar) separates dips-in-uptrends from knives." },
   { key: "gaps", label: "Gaps", hint: "Opened far from yesterday's close, usually on overnight news." },
 ];
 

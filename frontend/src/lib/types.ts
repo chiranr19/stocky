@@ -188,6 +188,32 @@ export interface SignalsResponse {
   oversold: StockRow[];
 }
 
+// --- Entry Radar ---
+export interface EchoStats {
+  n: number;
+  median_fwd_pct: number;
+  win_rate: number; // 0-1
+  worst_pct: number;
+  best_pct: number;
+}
+export interface RadarRow {
+  row: StockRow;
+  depth_pct: number;
+  depth_rank: number;
+  falling_knife: boolean;
+  entry_score: number;
+  entry_factors: Record<string, number>;
+  echo: EchoStats | null;
+}
+export interface RadarResponse {
+  as_of: string;
+  budget: number | null;
+  lookback: "1m" | "2m" | "3m";
+  horizon_days: number;
+  weights: Record<string, number>;
+  rows: RadarRow[];
+}
+
 // --- Compare ---
 export interface CompareSeries {
   ticker: string;
@@ -245,6 +271,7 @@ export interface StockDetail {
   rsi: SeriesPoint[];
   histogram: Histogram;
   benchmark_histogram: Histogram;
+  entry: RadarRow | null;
 }
 export interface Fundamentals {
   ticker: string;

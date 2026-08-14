@@ -9,6 +9,7 @@ import { FreshnessBadge } from "./FreshnessBadge";
 
 const LINKS = [
   { href: "/", label: "Pulse" },
+  { href: "/radar", label: "Radar" },
   { href: "/explore", label: "Explore" },
   { href: "/compare", label: "Compare" },
   { href: "/time-machine", label: "Time Machine" },

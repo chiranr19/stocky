@@ -20,7 +20,8 @@ alternative: just buying VOO.
 
 | Page | What it does |
 | --- | --- |
-| **Pulse** `/` | VOO · VIX · 10-yr yield + market breadth, sector-by-sector **affordable shortlists** ranked by a transparent score, movers, watchlist |
+| **Pulse** `/` | VOO · VIX · 10-yr yield + market breadth, Entry Radar preview, sector-by-sector **affordable shortlists** ranked by a transparent score, movers, watchlist |
+| **Entry Radar** `/radar` | Affordable stocks in a **pullback**, ranked by a transparent entry score (depth · trend · RSI · quality) and **validated against each stock's own history**: N similar past dips → median next-month move, win rate, worst case. Setups to study — never buy signals |
 | **Explore** `/explore` | Risk-vs-reward scatter (all 500 names), scanners (gainers/losers/volume/52-week highs·lows/gaps), golden/death crosses, RSI extremes |
 | **Compare** `/compare` | Up to 3 tickers vs VOO: normalized growth, stats, correlation matrix, return distributions |
 | **Deep dive** `/stock/…` | Candlesticks + MA50/200 + volume + RSI, score breakdown, fundamentals, distribution vs VOO |

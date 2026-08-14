@@ -5,6 +5,7 @@ import type {
   Fundamentals,
   OverviewResponse,
   PulseResponse,
+  RadarResponse,
   RiskMapResponse,
   SectorsResponse,
   SignalsResponse,
@@ -73,6 +74,15 @@ export const getRiskMap = (budget: number | null) =>
 
 export const getSignals = (budget: number | null) =>
   getJSON<SignalsResponse>(`/signals?${budgetParam(budget)}`);
+
+export const getRadar = (
+  budget: number | null,
+  lookback: "1m" | "2m" | "3m" = "3m",
+  limit = 30,
+) =>
+  getJSON<RadarResponse>(
+    `/radar?${budgetParam(budget)}&lookback=${lookback}&limit=${limit}`,
+  );
 
 export const getCompare = (tickers: string[]) =>
   getJSON<CompareResponse>(`/compare?tickers=${tickers.join(",")}`);

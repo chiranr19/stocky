@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Activity, ArrowRight, Flame, Grid3x3, Star } from "lucide-react";
-import { getMovers, getOverview, getPulse, getSectors } from "@/lib/api";
+import { Activity, ArrowRight, Crosshair, Flame, Grid3x3, Star } from "lucide-react";
+import { getMovers, getOverview, getPulse, getRadar, getSectors } from "@/lib/api";
 import { useBudget } from "@/lib/budget";
 import type {
   OverviewResponse,
   PulseResponse,
+  RadarResponse,
   SectorsResponse,
   StockRow,
 } from "@/lib/types";
@@ -20,6 +21,7 @@ import { SectorHeatmapStrip } from "@/components/sectors/SectorHeatmapStrip";
 import { SectorSection } from "@/components/sectors/SectorSection";
 import { WatchlistStrip } from "@/components/pulse/WatchlistStrip";
 import { StockRowItem } from "@/components/stocks/StockRowItem";
+import { RadarRowItem } from "@/components/radar/RadarList";
 import { ErrorCard, WarmingNotice } from "@/components/ui/States";
 
 export default function PulsePage() {
@@ -28,6 +30,7 @@ export default function PulsePage() {
   const [pulse, setPulse] = useState<PulseResponse | null>(null);
   const [sectors, setSectors] = useState<SectorsResponse | null>(null);
   const [movers, setMovers] = useState<StockRow[] | null>(null);
+  const [radar, setRadar] = useState<RadarResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -41,6 +44,7 @@ export default function PulsePage() {
   useEffect(() => {
     getSectors(budget).then(setSectors).catch(() => {});
     getMovers("gainers", budget, 6).then(setMovers).catch(() => {});
+    getRadar(budget, "3m", 12).then(setRadar).catch(() => {});
   }, [budget]);
 
   if (error && !overview) return <ErrorCard message={error} onRetry={load} />;
@@ -73,6 +77,46 @@ export default function PulsePage() {
         ) : (
           <SkeletonRow />
         )}
+      </section>
+
+      {/* Entry Radar preview */}
+      <section>
+        <SectionHeader
+          icon={Crosshair}
+          title="Entry Radar"
+          termKey="pullback"
+          sub="dips worth studying, validated by history"
+          right={
+            <Link
+              href="/radar"
+              className="flex items-center gap-1 text-xs text-muted transition-colors hover:text-accent"
+            >
+              Open Entry Radar <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          }
+        />
+        <TeachBanner>
+          Affordable stocks pulled back from their 3-month high with the long trend
+          intact — plus the <span className="text-ink">base rate</span>: what each stock
+          actually did after similar dips. Setups to study, <b>not</b> buy signals.
+        </TeachBanner>
+        <div className="card p-1.5">
+          {radar ? (
+            radar.rows.filter((r) => !r.falling_knife).length ? (
+              radar.rows
+                .filter((r) => !r.falling_knife)
+                .slice(0, 5)
+                .map((r, i) => <RadarRowItem key={r.row.ticker} r={r} rank={i + 1} />)
+            ) : (
+              <div className="px-3 py-6 text-center text-sm text-faint">
+                No trend-intact pullbacks at this budget right now — most names are near
+                their highs. That's worth knowing too.
+              </div>
+            )
+          ) : (
+            <SkeletonRow />
+          )}
+        </div>
       </section>
 
       {/* Sector pulse */}

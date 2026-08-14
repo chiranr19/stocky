@@ -273,6 +273,70 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     whenItLies:
       "It's easy to cherry-pick the comparison after the fact. Decide your benchmark before you invest, not after.",
   },
+  pullback: {
+    term: "pullback",
+    what: "How far a stock trades below its recent high — e.g. 12% under its 3-month peak.",
+    whyVetsWatchIt:
+      "Strong stocks regularly dip 5–15% on the way up. Vets shop during pullbacks instead of chasing highs — better prices, same company.",
+    whenItLies:
+      "Not every dip recovers. A pullback in a broken trend is just the start of a bigger decline — always check the trend first.",
+  },
+  falling_knife: {
+    term: "falling knife",
+    what: "A stock dropping hard and fast, with its longer trend broken (below the 200-day average).",
+    whyVetsWatchIt:
+      "'Never catch a falling knife' — buying just because something fell is how beginners get hurt. The cheap stock keeps getting cheaper.",
+    whenItLies:
+      "Occasionally the knife IS the bottom and the brave get rewarded. You only know afterwards — which is exactly the problem.",
+  },
+  mean_reversion: {
+    term: "mean reversion",
+    what: "The tendency of stretched prices to snap back toward their average.",
+    whyVetsWatchIt:
+      "It's the logic behind buying dips: unusually deep pullbacks in healthy stocks have often bounced. Note the word 'often'.",
+    whenItLies:
+      "Regimes change. A stock can revert to a NEW, lower average. Mean reversion works until the mean itself moves.",
+  },
+  base_rate: {
+    term: "base rate",
+    what: "How often something actually happened historically — e.g. '7 of 9 similar dips were higher a month later.'",
+    whyVetsWatchIt:
+      "Base rates replace gut feel with counted history. It's the only honest way to 'validate' a setup — and it's still not a promise.",
+    whenItLies:
+      "Small samples lie constantly. 9 past episodes is weak evidence; markets also change regime, making old episodes less comparable.",
+  },
+  win_rate: {
+    term: "win rate",
+    what: "The share of past setups that ended with a positive return over the horizon.",
+    whyVetsWatchIt:
+      "Alongside the median move it sketches the odds. A 70% win rate with a brutal worst case is still a dangerous bet.",
+    whenItLies:
+      "Win rate says nothing about SIZE of wins vs losses. Always read it next to the worst case, never alone.",
+  },
+  forward_return: {
+    term: "forward return",
+    what: "What the stock did over the N sessions AFTER a given day — here, ~1 month after each past setup.",
+    whyVetsWatchIt:
+      "It's the honest way to test 'what happened next' — measuring from the setup forward, not cherry-picking afterwards.",
+    whenItLies:
+      "The next month is arbitrary. A setup can look bad at 1 month and great at 6, or vice versa.",
+  },
+  sample_size: {
+    term: "sample size (N)",
+    what: "How many past episodes the stats are built on. Stocky refuses to show stats below N of 6.",
+    whyVetsWatchIt:
+      "Every stat is only as trustworthy as its N. Vets ignore any claim that doesn't disclose it.",
+    whenItLies:
+      "Even a decent N can mislead if all the episodes came from one market regime — 9 dips in a raging bull all look genius.",
+  },
+  entry_score: {
+    term: "entry score",
+    what: "A 0–100 blend: pullback Depth (35%), Trend intact (30%), RSI washout (20%), 1-year Quality (15%).",
+    whyVetsWatchIt:
+      "It ranks which dips are worth STUDYING first — deep-but-unusual pullbacks in stocks whose long trend survived.",
+    whenItLies:
+      "It's a ranking of setups, not a prediction, and definitely not a buy list. The falling-knife filter and the base rates matter more than the number.",
+  },
 };
 
 export function getTerm(key: string): GlossaryEntry | undefined {
