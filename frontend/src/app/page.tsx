@@ -1,0 +1,153 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { Activity, ArrowRight, Flame, Grid3x3, Star } from "lucide-react";
+import { getMovers, getOverview, getPulse, getSectors } from "@/lib/api";
+import { useBudget } from "@/lib/budget";
+import type {
+  OverviewResponse,
+  PulseResponse,
+  SectorsResponse,
+  StockRow,
+} from "@/lib/types";
+import { fmtDate } from "@/lib/format";
+import { SectionHeader } from "@/components/ui/primitives";
+import { StartHere } from "@/components/learn/StartHere";
+import { TeachBanner } from "@/components/learn/TeachBanner";
+import { MarketStrip } from "@/components/overview/MarketStrip";
+import { SectorHeatmapStrip } from "@/components/sectors/SectorHeatmapStrip";
+import { SectorSection } from "@/components/sectors/SectorSection";
+import { WatchlistStrip } from "@/components/pulse/WatchlistStrip";
+import { StockRowItem } from "@/components/stocks/StockRowItem";
+import { ErrorCard, WarmingNotice } from "@/components/ui/States";
+
+export default function PulsePage() {
+  const { budget } = useBudget();
+  const [overview, setOverview] = useState<OverviewResponse | null>(null);
+  const [pulse, setPulse] = useState<PulseResponse | null>(null);
+  const [sectors, setSectors] = useState<SectorsResponse | null>(null);
+  const [movers, setMovers] = useState<StockRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    setError(null);
+    getOverview().then(setOverview).catch((e) => setError(e.message));
+    getPulse().then(setPulse).catch(() => {});
+  }, []);
+
+  useEffect(load, [load]);
+
+  useEffect(() => {
+    getSectors(budget).then(setSectors).catch(() => {});
+    getMovers("gainers", budget, 6).then(setMovers).catch(() => {});
+  }, [budget]);
+
+  if (error && !overview) return <ErrorCard message={error} onRetry={load} />;
+
+  return (
+    <div className="space-y-10">
+      {/* Intro */}
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Market Pulse</h1>
+          <p className="text-sm text-muted">
+            The whole market at a glance{overview ? ` · as of ${fmtDate(overview.as_of)}` : ""}.
+          </p>
+        </div>
+        <StartHere />
+      </div>
+
+      <WarmingNotice />
+
+      {/* Market overview */}
+      <section>
+        <SectionHeader icon={Activity} title="Market overview" termKey="benchmark" />
+        <TeachBanner>
+          Check the weather before picking stocks: is the whole market up or down, is{" "}
+          fear (<span className="text-ink">VIX</span>) high, and is participation{" "}
+          <span className="text-ink">broad or narrow</span>?
+        </TeachBanner>
+        {overview ? (
+          <MarketStrip tiles={overview.tiles} breadth={overview.breadth} />
+        ) : (
+          <SkeletonRow />
+        )}
+      </section>
+
+      {/* Sector pulse */}
+      <section>
+        <SectionHeader
+          icon={Grid3x3}
+          title="Sector pulse"
+          termKey="sector"
+          sub="affordable, ranked — click a tile to jump"
+        />
+        <TeachBanner>
+          Each sector broken into the best affordable names by{" "}
+          <span className="text-ink">Stocky score</span> — a transparent blend of momentum,
+          stability, resilience and liquidity. Ranked to learn from, <b>not</b> a
+          recommendation.
+        </TeachBanner>
+        {sectors ? (
+          <>
+            <div className="mb-4">
+              <SectorHeatmapStrip sectors={sectors.sectors} />
+            </div>
+            <div className="grid gap-3 lg:grid-cols-2">
+              {sectors.sectors.map((p) => (
+                <SectorSection key={p.etf} panel={p} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <SkeletonRow />
+        )}
+      </section>
+
+      {/* Movers preview */}
+      <section>
+        <SectionHeader
+          icon={Flame}
+          title="Today's movers"
+          sub="biggest affordable gainers"
+          right={
+            <Link
+              href="/explore"
+              className="flex items-center gap-1 text-xs text-muted transition-colors hover:text-accent"
+            >
+              All scanners <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          }
+        />
+        <div className="card p-1.5">
+          {movers?.length ? (
+            movers.map((r) => <StockRowItem key={r.ticker} row={r} />)
+          ) : (
+            <div className="px-3 py-6 text-center text-sm text-faint">No movers yet.</div>
+          )}
+        </div>
+      </section>
+
+      {/* Watchlist */}
+      <section>
+        <SectionHeader icon={Star} title="Watchlist" sub="seeded highlights" />
+        {pulse ? (
+          <WatchlistStrip cards={pulse.watchlist} />
+        ) : (
+          <SkeletonRow />
+        )}
+      </section>
+    </div>
+  );
+}
+
+function SkeletonRow() {
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="h-28 animate-pulse rounded-xl border border-hair bg-panel" />
+      ))}
+    </div>
+  );
+}

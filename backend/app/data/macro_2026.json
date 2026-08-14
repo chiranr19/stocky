@@ -1,0 +1,17 @@
+{
+  "snapshot_note": "Representative 2026 US macro dates for the learning calendar. FOMC decision days and approximate CPI/jobs release dates. Refresh from the Fed and BLS schedules.",
+  "events": [
+    { "date": "2026-08-12", "label": "CPI (July) release", "kind": "cpi" },
+    { "date": "2026-09-04", "label": "Jobs report (August)", "kind": "jobs" },
+    { "date": "2026-09-11", "label": "CPI (August) release", "kind": "cpi" },
+    { "date": "2026-09-16", "label": "FOMC rate decision", "kind": "fed" },
+    { "date": "2026-10-02", "label": "Jobs report (September)", "kind": "jobs" },
+    { "date": "2026-10-13", "label": "CPI (September) release", "kind": "cpi" },
+    { "date": "2026-10-28", "label": "FOMC rate decision", "kind": "fed" },
+    { "date": "2026-11-06", "label": "Jobs report (October)", "kind": "jobs" },
+    { "date": "2026-11-12", "label": "CPI (October) release", "kind": "cpi" },
+    { "date": "2026-12-04", "label": "Jobs report (November)", "kind": "jobs" },
+    { "date": "2026-12-09", "label": "FOMC rate decision", "kind": "fed" },
+    { "date": "2026-12-10", "label": "CPI (November) release", "kind": "cpi" }
+  ]
+}

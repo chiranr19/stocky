@@ -1,0 +1,38 @@
+# ---- Python / backend ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# DuckDB data (never commit market data)
+backend/data/
+*.duckdb
+*.duckdb.wal
+
+# Secrets
+.env
+.env.local
+*.env
+
+# ---- Node / frontend ----
+node_modules/
+.next/
+out/
+.turbo/
+frontend/.env*.local
+npm-debug.log*
+yarn-error.log*
+
+# ---- Claude Code (personal/local settings; launch.json stays tracked) ----
+.claude/settings.local.json
+
+# ---- Editor / OS ----
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
