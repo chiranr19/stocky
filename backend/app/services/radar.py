@@ -70,10 +70,39 @@ def _analyze_one(
     if bucket is not None:
         ma200 = moving_average(adj, 200)
         above = adj > ma200
+        trend = bool(m.above_ma200)
+
+        # Tier 1: dips in the same depth bucket AND same trend state.
         episodes = find_setup_episodes(
-            depth, above, bucket, trend_state=bool(m.above_ma200), min_gap=RADAR_EPISODE_GAP
+            depth, above, bucket, trend_state=trend, min_gap=RADAR_EPISODE_GAP
         )
-        stats = echo_stats(adj, episodes, RADAR_FORWARD_DAYS, RADAR_MIN_EPISODES)
+        stats = echo_stats(
+            adj, episodes, RADAR_FORWARD_DAYS, RADAR_MIN_EPISODES,
+            kind="exact", min_depth_pct=bucket[0],
+        )
+        if stats is None:
+            # Tier 2: widen to "any dip at least this deep", stepping the floor
+            # down one bucket edge at a time until the sample is usable. Each
+            # step is a strict superset, and the UI labels the floor actually
+            # used ("dips ≥15%"), so the comparison stays honest — a 25% dip is
+            # rare, but the family of ≥15% dips still says something.
+            floors = sorted(
+                {lo for lo, _ in RADAR_DEPTH_BUCKETS if lo <= bucket[0]}, reverse=True
+            )
+            for floor in floors:
+                if floor < RADAR_MIN_DEPTH_PCT:
+                    break
+                episodes = find_setup_episodes(
+                    depth, above, (floor, 1000.0), trend_state=trend,
+                    min_gap=RADAR_EPISODE_GAP,
+                )
+                stats = echo_stats(
+                    adj, episodes, RADAR_FORWARD_DAYS, RADAR_MIN_EPISODES,
+                    kind="at_least", min_depth_pct=floor,
+                )
+                if stats is not None:
+                    break
+
         if stats is not None:
             echo = EchoStatsModel(
                 n=stats.n,
@@ -81,6 +110,10 @@ def _analyze_one(
                 win_rate=stats.win_rate,
                 worst_pct=stats.worst_pct,
                 best_pct=stats.best_pct,
+                kind=stats.kind,
+                min_depth_pct=stats.min_depth_pct,
+                bucket_lo=bucket[0],
+                bucket_hi=bucket[1],
             )
     return today_depth, depth_rank, echo
 

@@ -43,6 +43,10 @@ def health_data() -> DataHealth:
         anomalies_count=h["anomalies_count"],
         failed_count=len(h["failed_tickers"]),
         snapshot_date=SP500_SNAPSHOT_DATE,
+        history_span_days=h["history_span_days"],
+        median_sessions=h["median_sessions"],
+        thinnest_ticker=h["thinnest_ticker"],
+        thinnest_sessions=h["thinnest_sessions"],
     )
 
 

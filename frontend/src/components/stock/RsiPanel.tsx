@@ -69,6 +69,14 @@ export function RsiPanel({ rsi }: { rsi: SeriesPoint[] }) {
           <Area type="monotone" dataKey="rsi" stroke="#7C6BFF" strokeWidth={1.5} fill="url(#rsiFill)" />
         </AreaChart>
       </ResponsiveContainer>
+      <div className="mt-1 flex justify-between text-[10px] leading-snug">
+        <span className="text-down">
+          Below 30 — <span className="text-faint">washed out; sellers exhausted, or still falling</span>
+        </span>
+        <span className="text-up">
+          Above 70 — <span className="text-faint">stretched; strong stocks can stay here for weeks</span>
+        </span>
+      </div>
     </div>
   );
 }

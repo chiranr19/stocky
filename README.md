@@ -35,6 +35,13 @@ Liquidity 10) is fully transparent — a starting point for learning, never a
 recommendation. A freshness badge proves how current the data is against the
 NYSE calendar.
 
+**The reading layer** answers the question a beginner actually has in front of a
+chart — *the line is going up, is that good or is that risky?* Every stock page
+and the market overview carry plain-English readings, each one saying what the
+data shows, what a veteran does with it, and **what would make that reading
+wrong**. Tones are limited to constructive / caution / neutral: interpretations,
+never instructions (enforced by a test that fails on advice-like phrasing).
+
 ## Stack
 
 `backend/` — **FastAPI + DuckDB + yfinance**: warms the full S&P 500 on startup
@@ -71,6 +78,11 @@ seconds — progress at `/health/data`). Tests: `cd backend && pytest`.
   day, degrade gracefully.
 - **S&P 500 membership** is a committed snapshot (`backend/app/data/`);
   regenerate with `python backend/scripts/build_sp500.py`.
+- **Data trust:** ~5.5 years of daily history per name. Audit it yourself with
+  `python backend/scripts/audit_data.py` — coverage, gaps vs the NYSE calendar,
+  bad prices, and every flagged >40% single-day move. Recent IPOs legitimately
+  have thin history; the app says "too few past cases" instead of inventing
+  statistics.
 - Next.js is deliberately pinned to 14.2.x; charts are Recharts +
   lightweight-charts rather than Tremor. Reasoning lives in commit history —
   deliberate, not oversight.

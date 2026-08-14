@@ -29,17 +29,39 @@ function DepthBar({ depth }: { depth: number }) {
 export function EchoChip({ r, compact = false }: { r: RadarRow; compact?: boolean }) {
   if (!r.echo) {
     return (
-      <span className="text-[10px] text-faint">
-        <Term k="sample_size">not enough history</Term>
+      <span
+        className="text-[10px] text-faint"
+        title={
+          "Fewer than 6 comparable dips in this stock's ~5 years of history. " +
+          "Today's pullback is genuinely unusual for it — which cuts both ways: " +
+          "unusual is not the same as opportunity, it means history has less to say here."
+        }
+      >
+        <Term k="sample_size">rare setup — too few past cases</Term>
       </span>
     );
   }
   const e = r.echo;
   const ups = Math.round(e.win_rate * e.n);
+  // "exact" = same depth bucket; "at_least" = widened superset, must be labeled.
+  // Fields are optional-safe: an older cached payload must not break the page.
+  const match =
+    e.kind === "at_least" && e.min_depth_pct != null
+      ? `dips ≥${e.min_depth_pct.toFixed(0)}%`
+      : e.bucket_lo != null && e.bucket_hi != null
+        ? `dips of ${e.bucket_lo.toFixed(0)}–${e.bucket_hi.toFixed(0)}%`
+        : "similar dips";
   return (
-    <div className={`text-right ${compact ? "text-[10px]" : "text-xs"}`}>
+    <div
+      className={`text-right ${compact ? "text-[10px]" : "text-xs"}`}
+      title={
+        `Past episodes where this stock was ${match} below its high, in the same trend ` +
+        `state. Median next-month move ${fmtPct(e.median_fwd_pct)}, best ${fmtPct(e.best_pct)}, ` +
+        `worst ${fmtPct(e.worst_pct)}. A base rate over ${e.n} cases — not a forecast.`
+      }
+    >
       <div className="text-muted">
-        <span className="tnum text-ink">{e.n}</span> similar dips →{" "}
+        <span className="tnum text-ink">{e.n}</span> {match} →{" "}
         <span className={`tnum font-semibold ${e.median_fwd_pct >= 0 ? "text-up" : "text-down"}`}>
           {fmtPct(e.median_fwd_pct)}
         </span>{" "}
@@ -51,6 +73,18 @@ export function EchoChip({ r, compact = false }: { r: RadarRow; compact?: boolea
       </div>
     </div>
   );
+}
+
+/** Plain-English explanation of an entry score, from its factor breakdown. */
+export function explainEntry(r: RadarRow): string {
+  const f = r.entry_factors;
+  const parts = [
+    `Deeper than ${(f.depth ?? 0).toFixed(0)}% of this stock's own dips`,
+    r.falling_knife ? "trend BROKEN (below 200-day)" : "long trend intact",
+    `RSI factor ${(f.rsi ?? 0).toFixed(0)}/100 (lower RSI scores higher)`,
+    `1-year strength ranks ${(f.quality ?? 0).toFixed(0)}/100 vs other candidates`,
+  ];
+  return `Entry score ${r.entry_score.toFixed(0)}: ${parts.join(" · ")}. Ranked to study, not a recommendation.`;
 }
 
 export function KnifeChip() {
@@ -75,7 +109,7 @@ export function RadarRowItem({ r, rank }: { r: RadarRow; rank?: number }) {
       <div className="hidden w-44 shrink-0 lg:block">
         <EchoChip r={r} />
       </div>
-      <div className="flex shrink-0 items-center gap-1.5 pr-2">
+      <div className="flex shrink-0 items-center gap-1.5 pr-2" title={explainEntry(r)}>
         {r.falling_knife && <KnifeChip />}
         <ScoreBadge score={r.entry_score} />
       </div>

@@ -161,6 +161,11 @@ class EchoStats:
 
     Descriptive statistics over this stock's own history — base rates with the
     sample size and worst case always attached, never a prediction.
+
+    ``kind`` records how comparable the sample is:
+      * ``exact``    — same depth bucket (e.g. dips of 10–15%) and trend state.
+      * ``at_least`` — widened to *any* dip at least this deep in the same trend
+        state, used when the exact bucket was too thin to say anything.
     """
 
     n: int
@@ -168,6 +173,8 @@ class EchoStats:
     win_rate: float  # share of episodes with a positive forward return, 0-1
     worst_pct: float
     best_pct: float
+    kind: str = "exact"
+    min_depth_pct: float = 0.0
 
 
 def rolling_high(series: pd.Series, window: int) -> pd.Series:
@@ -232,6 +239,8 @@ def echo_stats(
     episodes: list[pd.Timestamp],
     horizon: int,
     min_episodes: int,
+    kind: str = "exact",
+    min_depth_pct: float = 0.0,
 ) -> EchoStats | None:
     """Forward-return stats over episode starts; None when the sample is too thin."""
     fwd = forward_returns(adj_close, horizon)
@@ -245,6 +254,8 @@ def echo_stats(
         win_rate=round(float((arr > 0).mean()), 3),
         worst_pct=round(float(arr.min()), 2),
         best_pct=round(float(arr.max()), 2),
+        kind=kind,
+        min_depth_pct=round(min_depth_pct, 1),
     )
 
 

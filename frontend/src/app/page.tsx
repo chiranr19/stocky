@@ -22,6 +22,7 @@ import { SectorSection } from "@/components/sectors/SectorSection";
 import { WatchlistStrip } from "@/components/pulse/WatchlistStrip";
 import { StockRowItem } from "@/components/stocks/StockRowItem";
 import { RadarRowItem } from "@/components/radar/RadarList";
+import { Readings } from "@/components/learn/Readings";
 import { ErrorCard, WarmingNotice } from "@/components/ui/States";
 
 export default function PulsePage() {
@@ -73,7 +74,14 @@ export default function PulsePage() {
           <span className="text-ink">broad or narrow</span>?
         </TeachBanner>
         {overview ? (
-          <MarketStrip tiles={overview.tiles} breadth={overview.breadth} />
+          <div className="space-y-3">
+            <MarketStrip tiles={overview.tiles} breadth={overview.breadth} />
+            <Readings
+              readings={overview.readings}
+              title="What today's market picture means"
+              columns={2}
+            />
+          </div>
         ) : (
           <SkeletonRow />
         )}

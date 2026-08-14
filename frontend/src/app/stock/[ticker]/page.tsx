@@ -12,6 +12,7 @@ import { Term } from "@/components/ui/Term";
 import { ErrorCard, Loading } from "@/components/ui/States";
 import { CandleChart } from "@/components/stock/CandleChart";
 import { EchoChip, KnifeChip } from "@/components/radar/RadarList";
+import { Readings } from "@/components/learn/Readings";
 import { RsiPanel } from "@/components/stock/RsiPanel";
 import { FundamentalsCard } from "@/components/stock/FundamentalsCard";
 import { DistributionBars } from "@/components/compare/DistributionBars";
@@ -144,6 +145,13 @@ export default function StockPage() {
           </p>
         )}
       </div>
+
+      {/* The reading layer — what this chart actually means */}
+      <Readings
+        readings={data.readings}
+        title={`How to read ${data.ticker} right now`}
+        columns={2}
+      />
 
       {/* Candles + RSI */}
       <CandleChart candles={data.candles} ma50={data.ma50} ma200={data.ma200} />

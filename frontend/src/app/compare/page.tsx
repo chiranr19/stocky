@@ -108,6 +108,7 @@ export default function ComparePage() {
               gap to VOO is your <Term k="opportunity_cost">opportunity cost</Term>.
             </TeachBanner>
             <NormalizedChart series={data.series} benchmark={BENCHMARK} />
+            <CompareTakeaway data={data} />
           </section>
 
           <section className="grid gap-3 lg:grid-cols-[1.3fr_1fr]">
@@ -130,6 +131,48 @@ export default function ComparePage() {
           </section>
         </>
       )}
+    </div>
+  );
+}
+
+/** Reads the comparison out loud: who won, and what it cost to hold. */
+function CompareTakeaway({ data }: { data: CompareResponse }) {
+  const bench = data.stats.find((s) => s.ticker === BENCHMARK);
+  const others = data.stats.filter((s) => s.ticker !== BENCHMARK);
+  if (!bench || others.length === 0) return null;
+
+  const ranked = [...others].sort(
+    (a, b) => (b.total_return_pct ?? 0) - (a.total_return_pct ?? 0),
+  );
+  const best = ranked[0];
+  const gap = (best.total_return_pct ?? 0) - (bench.total_return_pct ?? 0);
+  const beat = gap >= 0;
+  const dd = Math.abs(best.max_drawdown_pct);
+  const benchDd = Math.abs(bench.max_drawdown_pct);
+  const rougher = dd > benchDd;
+
+  return (
+    <div
+      className={`mt-3 rounded-lg border p-3 text-xs leading-relaxed ${
+        beat ? "border-up/25 bg-up/5" : "border-hair bg-elevated/40"
+      }`}
+    >
+      <span className="font-medium text-ink">
+        {beat
+          ? `${best.ticker} beat VOO by ${gap.toFixed(1)} points over this window`
+          : `Nothing here beat VOO — ${best.ticker} came closest, ${Math.abs(gap).toFixed(1)} points behind`}
+        .
+      </span>{" "}
+      <span className="text-muted">
+        {beat
+          ? rougher
+            ? `Collecting that meant sitting through a ${dd.toFixed(0)}% drop along the way, versus ${benchDd.toFixed(0)}% for the index. The extra return was payment for the extra pain — decide whether you'd have held on.`
+            : `And it did so with a shallower worst drop (${dd.toFixed(0)}% vs the index's ${benchDd.toFixed(0)}%) — the unusual combination worth studying.`
+          : `That's the case for the boring option: one fund owning all 500 companies, no research required. Beating it consistently is the hard part of investing.`}
+      </span>{" "}
+      <span className="text-faint">
+        One historical window only — a different start date can flip this entirely.
+      </span>
     </div>
   );
 }

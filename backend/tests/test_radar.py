@@ -145,6 +145,27 @@ def test_analyze_one_gates_shallow_pullbacks():
     assert _analyze_one(_metrics(), adj, 63) is None
 
 
+def test_echo_stats_labels_kind_and_min_depth():
+    s = _series(list(np.linspace(100, 200, 60)))
+    eps = [s.index[i] for i in (0, 10, 20, 30, 40, 45)]
+    exact = echo_stats(s, eps, horizon=5, min_episodes=6, kind="exact", min_depth_pct=10.0)
+    wide = echo_stats(s, eps, horizon=5, min_episodes=6, kind="at_least", min_depth_pct=10.0)
+    assert exact.kind == "exact" and exact.min_depth_pct == 10.0
+    assert wide.kind == "at_least"
+
+
+def test_widened_bucket_is_a_superset_of_the_exact_bucket():
+    # Dips of ~12% and ~22%: the exact [10,15) bucket sees one run, the widened
+    # "at least 10%" bucket must see at least as many episodes.
+    depth_vals = [0] * 10 + [12, 12] + [0] * 20 + [22, 22] + [0] * 10
+    depth = _series(depth_vals)
+    above = pd.Series(True, index=depth.index)
+    exact = find_setup_episodes(depth, above, (10.0, 15.0), True, min_gap=10)
+    wide = find_setup_episodes(depth, above, (10.0, 1000.0), True, min_gap=10)
+    assert len(wide) >= len(exact)
+    assert len(exact) == 1 and len(wide) == 2
+
+
 def test_analyze_one_detects_dip():
     # Long rise then a ~12% dip over the last sessions.
     rise = list(np.linspace(100, 200, 280))

@@ -82,6 +82,10 @@ export interface DataHealth {
   last_ingest_at: string | null;
   anomalies_count: number;
   failed_count: number;
+  history_span_days: number | null;
+  median_sessions: number | null;
+  thinnest_ticker: string | null;
+  thinnest_sessions: number | null;
   snapshot_date: string;
 }
 export interface UniverseItem {
@@ -140,6 +144,7 @@ export interface OverviewResponse {
   as_of: string;
   tiles: IndexTile[];
   breadth: BreadthStats;
+  readings: Reading[];
 }
 
 // --- Sectors ---
@@ -195,6 +200,18 @@ export interface EchoStats {
   win_rate: number; // 0-1
   worst_pct: number;
   best_pct: number;
+  kind: "exact" | "at_least";
+  min_depth_pct?: number;
+  bucket_lo?: number;
+  bucket_hi?: number;
+}
+
+export interface Reading {
+  aspect: string;
+  headline: string;
+  detail: string;
+  tone: "constructive" | "caution" | "neutral";
+  caveat: string;
 }
 export interface RadarRow {
   row: StockRow;
@@ -272,6 +289,7 @@ export interface StockDetail {
   histogram: Histogram;
   benchmark_histogram: Histogram;
   entry: RadarRow | null;
+  readings: Reading[];
 }
 export interface Fundamentals {
   ticker: string;

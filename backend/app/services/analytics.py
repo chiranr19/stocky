@@ -32,6 +32,7 @@ from ..models import (
     IndexTile,
     OverviewResponse,
     PricePoint,
+    Reading,
     RiskMapResponse,
     RiskPoint,
     SectorPanel,
@@ -50,6 +51,7 @@ from .metrics import (
     return_histogram,
     rsi,
 )
+from . import insights
 from .screener import ScoredStock, is_eligible, screen_by_sector
 from .simulation import max_drawdown
 
@@ -199,7 +201,26 @@ def build_overview() -> OverviewResponse:
         new_highs_52w=sum(1 for m in members if m.is_new_high_52w),
         new_lows_52w=sum(1 for m in members if m.is_new_low_52w),
     )
-    return OverviewResponse(as_of=latest, tiles=tiles, breadth=breadth)
+
+    # What today's picture means, in plain English.
+    readings: list[Reading] = []
+    vix = metrics.get("^VIX")
+    if vix is not None:
+        readings.append(Reading(**vars(insights.vix_reading(vix.price))))
+    readings.append(
+        Reading(
+            **vars(
+                insights.breadth_reading(
+                    breadth.pct_above_ma50, breadth.advancers, breadth.decliners
+                )
+            )
+        )
+    )
+    tnx = metrics.get("^TNX")
+    if tnx is not None:
+        readings.append(Reading(**vars(insights.yield_reading(tnx.price, tnx.change_pct))))
+
+    return OverviewResponse(as_of=latest, tiles=tiles, breadth=breadth, readings=readings)
 
 
 # --------------------------------------------------------------------------- #
@@ -495,6 +516,12 @@ def build_stock_detail(ticker: str) -> StockDetail:
     # Local import: radar depends on this module, so the reverse edge stays lazy.
     from .radar import radar_for_ticker
 
+    entry = radar_for_ticker(ticker)
+    readings = [
+        Reading(**vars(r))
+        for r in insights.stock_readings(m, entry.depth_pct if entry else None)
+    ]
+
     return StockDetail(
         ticker=ticker,
         name=display_name(ticker),
@@ -507,5 +534,6 @@ def build_stock_detail(ticker: str) -> StockDetail:
         rsi=_pts(rsi_s),
         histogram=hist,
         benchmark_histogram=bench_hist,
-        entry=radar_for_ticker(ticker),
+        entry=entry,
+        readings=readings,
     )

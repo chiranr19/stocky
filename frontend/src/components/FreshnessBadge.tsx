@@ -45,10 +45,15 @@ export function FreshnessBadge({ health }: { health: DataHealth | null }) {
     <span
       className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs ${tone}`}
       title={[
-        `Latest session: ${health.latest_trading_date ?? "—"}`,
-        `Expected: ${health.expected_session}`,
-        `Loaded: ${health.tickers_loaded}/${health.tickers_total}`,
-        health.failed_count ? `Failed: ${health.failed_count}` : "",
+        `Latest session: ${health.latest_trading_date ?? "—"} (expected ${health.expected_session})`,
+        `Coverage: ${health.tickers_loaded}/${health.tickers_total} tickers`,
+        health.history_span_days
+          ? `History: ${(health.history_span_days / 365).toFixed(1)} years · median ${health.median_sessions} sessions/ticker`
+          : "",
+        health.thinnest_ticker
+          ? `Thinnest: ${health.thinnest_ticker} (${health.thinnest_sessions} sessions)`
+          : "",
+        `Failed fetches: ${health.failed_count} · flagged anomalies: ${health.anomalies_count}`,
         `End-of-day data from Yahoo Finance; intraday is delayed.`,
       ]
         .filter(Boolean)

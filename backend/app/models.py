@@ -106,6 +106,11 @@ class DataHealth(BaseModel):
     anomalies_count: int
     failed_count: int
     snapshot_date: str = Field(description="Date the S&P 500 membership was snapshotted.")
+    # Depth proof — how much history backs the historical stats.
+    history_span_days: int | None = None
+    median_sessions: int | None = None
+    thinnest_ticker: str | None = None
+    thinnest_sessions: int | None = None
 
 
 class UniverseItem(BaseModel):
@@ -145,6 +150,17 @@ class StockRow(BaseModel):
 
 
 # --------------------------------------------------------------------------- #
+# Reading layer: plain-English interpretation of what the data means
+# --------------------------------------------------------------------------- #
+class Reading(BaseModel):
+    aspect: str = Field(description="trend | rsi | volatility | position | vix | …")
+    headline: str
+    detail: str = Field(description="What it says + what veterans do with it.")
+    tone: str = Field(description="constructive | caution | neutral — never advice.")
+    caveat: str = Field(description="What would make this reading wrong.")
+
+
+# --------------------------------------------------------------------------- #
 # Analytics: market overview
 # --------------------------------------------------------------------------- #
 class IndexTile(BaseModel):
@@ -171,6 +187,7 @@ class OverviewResponse(BaseModel):
     as_of: date
     tiles: list[IndexTile]
     breadth: BreadthStats
+    readings: list[Reading] = []  # what today's market picture means
 
 
 # --------------------------------------------------------------------------- #
@@ -238,6 +255,13 @@ class EchoStats(BaseModel):
     win_rate: float = Field(description="Share of episodes that ended positive, 0-1.")
     worst_pct: float
     best_pct: float
+    kind: str = Field(
+        default="exact",
+        description="'exact' = same depth bucket; 'at_least' = widened to any dip ≥ min_depth_pct.",
+    )
+    min_depth_pct: float = 0.0
+    bucket_lo: float = 0.0
+    bucket_hi: float = 0.0
 
 
 class RadarRow(BaseModel):
@@ -319,6 +343,7 @@ class StockDetail(BaseModel):
     histogram: dict
     benchmark_histogram: dict
     entry: RadarRow | None = None  # Entry Radar position (3M lookback)
+    readings: list[Reading] = []  # how to read this stock's current chart
 
 
 class Fundamentals(BaseModel):

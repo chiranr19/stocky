@@ -32,9 +32,9 @@ from ..db import db_lock
 _PRICE_COLUMNS = ["ticker", "date", "open", "high", "low", "close", "adj_close", "volume"]
 
 # Lookback deep enough for the Entry Radar's historical-echo study: MA200
-# warm-up (~290 calendar days) + ~2 years of detectable setups + the forward
+# warm-up (~290 calendar days) + ~4.5 years of detectable setups + the forward
 # window. Widening this triggers a one-time universe back-fill on next warm-up.
-HISTORY_LOOKBACK = dt.timedelta(days=1200)
+HISTORY_LOOKBACK = dt.timedelta(days=2000)
 
 
 class MarketDataError(RuntimeError):
@@ -383,6 +383,19 @@ def data_health() -> dict:
         anomalies = con.execute(
             "SELECT COUNT(*) FROM ingest_log WHERE kind = 'anomaly'"
         ).fetchone()[0]
+        # Depth proof: how much history each ticker actually has.
+        depth = con.execute(
+            """
+            SELECT median(n), min(n), arg_min(ticker, n), min(first_date)
+            FROM (
+                SELECT ticker, COUNT(*) AS n, MIN(date) AS first_date
+                FROM prices GROUP BY ticker
+            )
+            """
+        ).fetchone()
+
+    median_sessions, min_sessions, thinnest, earliest = depth or (None, None, None, None)
+    span_days = (latest - earliest).days if (latest and earliest) else None
 
     state = _warm_state
     return {
@@ -395,4 +408,8 @@ def data_health() -> dict:
         "last_ingest_at": last_ingest,
         "anomalies_count": int(anomalies or 0),
         "failed_tickers": list(state.failed),
+        "history_span_days": span_days,
+        "median_sessions": int(median_sessions) if median_sessions else None,
+        "thinnest_ticker": thinnest,
+        "thinnest_sessions": int(min_sessions) if min_sessions else None,
     }

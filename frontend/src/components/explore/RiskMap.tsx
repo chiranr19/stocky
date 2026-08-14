@@ -38,11 +38,53 @@ const SECTOR_COLORS: Record<string, string> = {
   Materials: "#FBBF24",
 };
 
-function PointTooltip({ active, payload }: { active?: boolean; payload?: { payload: RiskPoint }[] }) {
+/** Which quadrant vs VOO this lands in, and what that means. */
+function quadrantVerdict(
+  p: RiskPoint,
+  bench: RiskPoint | null,
+): { label: string; blurb: string; tone: string } {
+  if (!bench) return { label: "", blurb: "", tone: "text-faint" };
+  const calmer = p.vol_90d <= bench.vol_90d;
+  const better = p.ret_1y >= bench.ret_1y;
+  if (better && calmer)
+    return {
+      label: "Beat the market with less churn",
+      blurb: "Rare and worth studying — though one year is a short window to judge it on.",
+      tone: "text-up",
+    };
+  if (better && !calmer)
+    return {
+      label: "Beat the market, but a wilder ride",
+      blurb: "You were paid for the extra swings this time. That trade doesn't always pay.",
+      tone: "text-ink",
+    };
+  if (!better && calmer)
+    return {
+      label: "Lagged the market, but calmer",
+      blurb: "Quieter, cheaper to hold emotionally — you gave up return for that comfort.",
+      tone: "text-muted",
+    };
+  return {
+    label: "More volatility, less return than VOO",
+    blurb: "The worst corner of this chart: you paid in swings and weren't compensated.",
+    tone: "text-down",
+  };
+}
+
+function PointTooltip({
+  active,
+  payload,
+  bench,
+}: {
+  active?: boolean;
+  payload?: { payload: RiskPoint }[];
+  bench: RiskPoint | null;
+}) {
   if (!active || !payload?.length) return null;
   const p = payload[0].payload;
+  const v = quadrantVerdict(p, bench);
   return (
-    <div className="rounded-lg border border-hair bg-elevated px-3 py-2 text-xs shadow-card">
+    <div className="max-w-[260px] rounded-lg border border-hair bg-elevated px-3 py-2 text-xs shadow-card">
       <div className="mb-0.5 font-semibold text-ink">
         {p.ticker} · <span className="text-muted">{fmtCurrency(p.price)}</span>
       </div>
@@ -51,6 +93,12 @@ function PointTooltip({ active, payload }: { active?: boolean; payload?: { paylo
         <span>Risk: <span className="tnum text-ink">{p.vol_90d}%</span></span>
         <span>1y: <span className="tnum text-ink">{fmtPct(p.ret_1y)}</span></span>
       </div>
+      {v.label && (
+        <div className="mt-1.5 border-t border-hair pt-1.5">
+          <div className={`font-medium ${v.tone}`}>{v.label}</div>
+          <div className="mt-0.5 text-[10px] leading-snug text-faint">{v.blurb}</div>
+        </div>
+      )}
       <div className="mt-1 text-[10px] text-faint">click to open →</div>
     </div>
   );
@@ -105,7 +153,7 @@ export function RiskMap({ data }: { data: RiskMapResponse }) {
             label={{ value: "1-year return →", angle: -90, position: "insideLeft", fill: "#8B929C", fontSize: 11 }}
           />
           <ZAxis range={[36, 36]} />
-          <Tooltip content={<PointTooltip />} cursor={{ strokeDasharray: "3 3", stroke: "rgba(255,255,255,0.2)" }} />
+          <Tooltip content={<PointTooltip bench={bench} />} cursor={{ strokeDasharray: "3 3", stroke: "rgba(255,255,255,0.2)" }} />
 
           {bench && (
             <>

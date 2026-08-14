@@ -62,6 +62,11 @@ Built (v0.2):
 Built (v0.3):
 - `GET /radar?budget=&lookback=1m|2m|3m&limit=` — **Entry Radar**: affordable stocks ≥5% below their lookback high, ranked by entry score (depth 35 · trend 30 · RSI 20 · quality 15, `RADAR_WEIGHTS`), each with **echo stats** — forward 21-session outcomes of that stock's own similar past episodes (same depth bucket + trend state; N≥6 or null). `services/radar.py` + radar helpers in `services/metrics.py`; `/stock/{ticker}` now carries `entry`. Copy rule: *setups to study*, never buy signals; every echo shows N and the worst case.
 
+Built (v0.4 — the reading layer):
+- **`services/insights.py`** — deterministic "what does this mean" rules producing `Reading {aspect, headline, detail, tone, caveat}`; `tone ∈ constructive|caution|neutral`. Attached to `/stock/{ticker}` (`readings`) and `/overview` (`readings`). **Copy law, enforced by `tests/test_insights.py`:** every reading carries a caveat, and advice phrasing ("you should", "recommended", "guaranteed", "will rise") fails the suite.
+- **Echo tiering**: exact depth bucket first, then a stepped widening ("dips ≥15%") down the bucket edges; `EchoStats.kind` = `exact|at_least` and the UI must label which. Took radar coverage from ~79% to ~99%.
+- **Data trust**: `HISTORY_LOOKBACK` = 2000 days (~5.5y, median ~1,377 sessions/ticker); `/health/data` reports `history_span_days`, `median_sessions`, `thinnest_ticker`; `scripts/audit_data.py` audits coverage/gaps/bad prices/anomalies (exit 2 on real problems — a handful of recent IPOs legitimately fail the 300-session bar).
+
 Planned: `GET /cone?ticker=` (Monte Carlo bands), `GET /brief` (Daily Brief text).
 
 ## v0.2 architecture notes
