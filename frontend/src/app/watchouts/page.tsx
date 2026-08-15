@@ -10,8 +10,7 @@ import { SectionHeader } from "@/components/ui/primitives";
 import { TeachBanner } from "@/components/learn/TeachBanner";
 import { Term } from "@/components/ui/Term";
 import { Loading, WarmingNotice } from "@/components/ui/States";
-import { StockRowItem } from "@/components/stocks/StockRowItem";
-import { FlagChips } from "@/components/flags/Flags";
+import { WatchoutRowItem } from "@/components/watchouts/WatchoutList";
 
 export default function WatchoutsPage() {
   const { budget } = useBudget();
@@ -59,23 +58,7 @@ export default function WatchoutsPage() {
             </div>
           ) : (
             data.rows.map((r, i) => (
-              <div key={r.row.ticker} className="flex items-center gap-3">
-                <div className="min-w-0 flex-1">
-                  <StockRowItem row={r.row} rank={i + 1} />
-                </div>
-                <div className="hidden max-w-[300px] shrink-0 justify-end md:flex">
-                  <FlagChips flags={r.flags} max={3} />
-                </div>
-                <div
-                  className="shrink-0 pr-3 text-right"
-                  title="Weighted severity of the hazards detected — higher means more, or more serious, risk patterns."
-                >
-                  <div className="tnum text-sm font-semibold text-down">
-                    {r.risk_score.toFixed(0)}
-                  </div>
-                  <div className="text-[10px] text-faint">risk</div>
-                </div>
-              </div>
+              <WatchoutRowItem key={r.row.ticker} r={r} rank={i + 1} />
             ))
           )}
         </div>

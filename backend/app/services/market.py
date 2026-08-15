@@ -276,6 +276,18 @@ def warm_universe() -> None:
     _warm_state.status = "ready"
     _warm_state.finished_at = _utcnow()
 
+    # Prewarm the heaviest endpoints so the first page load hits hot caches.
+    try:
+        from ..config import DEFAULT_BUDGET
+        from . import analytics
+        from .radar import build_radar
+
+        analytics.build_sectors(DEFAULT_BUDGET)
+        build_radar(DEFAULT_BUDGET, "3m", 30)
+        analytics.build_watchouts(DEFAULT_BUDGET, 30)
+    except Exception:
+        pass  # best-effort; dashboard still works without pre-warming
+
 
 def start_background_warm() -> None:
     global _warm_thread
@@ -352,22 +364,30 @@ def read_cached(tickers: list[str], start: dt.date, end: dt.date) -> dict[str, p
     Used by the heavy analytics endpoints (screener, riskmap, scanners) which run
     over the whole universe and rely on the background warm-up rather than
     fetching hundreds of tickers inline.
+
+    Fetches all tickers in a single query and splits by ticker in Python — much
+    faster than 500+ sequential per-ticker queries.
     """
     tickers = [t.upper() for t in tickers]
-    out: dict[str, pd.DataFrame] = {}
+    if not tickers:
+        return {}
     with db_lock() as con:
-        for ticker in tickers:
-            df = con.execute(
-                """
-                SELECT date, open, high, low, close, adj_close, volume
-                FROM prices WHERE ticker = ? AND date BETWEEN ? AND ? ORDER BY date
-                """,
-                [ticker, start, end],
-            ).df()
-            if df.empty:
-                continue
-            df["date"] = pd.to_datetime(df["date"])
-            out[ticker] = df.set_index("date")
+        df_all = con.execute(
+            """
+            SELECT ticker, date, open, high, low, close, adj_close, volume
+            FROM prices
+            WHERE ticker IN (SELECT UNNEST(?::VARCHAR[]))
+              AND date BETWEEN ? AND ?
+            ORDER BY ticker, date
+            """,
+            [tickers, start, end],
+        ).df()
+    if df_all.empty:
+        return {}
+    df_all["date"] = pd.to_datetime(df_all["date"])
+    out: dict[str, pd.DataFrame] = {}
+    for ticker, group in df_all.groupby("ticker", sort=False):
+        out[str(ticker)] = group.drop(columns=["ticker"]).set_index("date")
     return out
 
 

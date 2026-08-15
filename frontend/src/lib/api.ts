@@ -28,7 +28,7 @@ export class ApiError extends Error {
   }
 }
 
-async function getJSON<T>(path: string): Promise<T> {
+async function fetchJSON<T>(path: string): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${BASE_URL}${path}`, { cache: "no-store" });
@@ -51,12 +51,66 @@ async function getJSON<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+/* ---------------------------------------------------------------------------
+ * Stale-while-revalidate micro-cache.
+ *
+ * Analytics payloads only change once a day (or as warm-up streams in), but
+ * navigating between pages refetches everything. Serving the last response
+ * immediately and revalidating behind it makes back-navigation instant, and
+ * de-duping in-flight requests stops a page that mounts three components from
+ * firing three identical calls.
+ *
+ * Budget changes produce a different URL, so they naturally miss the cache.
+ * ------------------------------------------------------------------------- */
+const TTL_MS = 90_000;
+
+type Entry<T> = { at: number; data: T };
+
+const cache = new Map<string, Entry<unknown>>();
+const inflight = new Map<string, Promise<unknown>>();
+
+function revalidate<T>(path: string): Promise<T> {
+  const existing = inflight.get(path);
+  if (existing) return existing as Promise<T>;
+
+  const p = fetchJSON<T>(path)
+    .then((data) => {
+      cache.set(path, { at: Date.now(), data });
+      return data;
+    })
+    .finally(() => {
+      inflight.delete(path);
+    });
+
+  inflight.set(path, p);
+  return p;
+}
+
+async function getJSON<T>(path: string): Promise<T> {
+  const hit = cache.get(path) as Entry<T> | undefined;
+  if (hit) {
+    // Fresh enough to serve outright.
+    if (Date.now() - hit.at < TTL_MS) return hit.data;
+    // Stale: hand back what we have and refresh in the background. A failed
+    // revalidation must not surface as an error — the caller already has data.
+    void revalidate<T>(path).catch(() => {});
+    return hit.data;
+  }
+  return revalidate<T>(path);
+}
+
+/** Drop cached responses — used after a warm-up completes. */
+export function clearApiCache(): void {
+  cache.clear();
+}
+
 /** Serialize a budget cap for the query string. null = no cap → budget=0. */
 function budgetParam(budget: number | null): string {
   return `budget=${budget === null ? 0 : budget}`;
 }
 
-export const getHealth = () => getJSON<DataHealth>("/health/data");
+// Polled every few seconds during warm-up — caching it would freeze progress.
+export const getHealth = () => fetchJSON<DataHealth>("/health/data");
 export const getUniverse = () => getJSON<UniverseItem[]>("/universe");
 export const getOverview = () => getJSON<OverviewResponse>("/overview");
 export const getPulse = () => getJSON<PulseResponse>("/pulse");

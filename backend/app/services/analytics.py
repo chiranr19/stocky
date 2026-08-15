@@ -69,6 +69,7 @@ _TD_1Y = 252
 _lock = threading.Lock()
 _cache: dict = {"key": None, "metrics": {}, "latest": None, "closes": {}}
 _screen_cache: dict = {"key": None, "by_budget": {}}
+_watchouts_cache: dict = {"key": None, "by_params": {}}
 
 
 def _max_date() -> dt.date | None:
@@ -371,7 +372,7 @@ def build_signals(budget: float | None, limit: int = 40) -> SignalsResponse:
 # --------------------------------------------------------------------------- #
 # /watchouts — the "what a poor setup looks like" showcase
 # --------------------------------------------------------------------------- #
-def build_watchouts(budget: float | None, limit: int) -> WatchoutsResponse:
+def _build_watchouts(budget: float | None, limit: int) -> WatchoutsResponse:
     """Stocks carrying the heaviest named risk patterns, worst first.
 
     The deliberate mirror of the Entry Radar: seeing *why* a setup is bad is
@@ -420,6 +421,23 @@ def build_watchouts(budget: float | None, limit: int) -> WatchoutsResponse:
         )
     )
     return WatchoutsResponse(as_of=latest, budget=budget, rows=rows[:limit])
+
+
+def build_watchouts(budget: float | None, limit: int) -> WatchoutsResponse:
+    """Cached per (metrics-cache generation, budget, limit)."""
+    cache_key = _cache["key"]
+    params = (budget, limit)
+    with _lock:
+        if _watchouts_cache["key"] != cache_key:
+            _watchouts_cache["key"] = cache_key
+            _watchouts_cache["by_params"] = {}
+        cached = _watchouts_cache["by_params"].get(params)
+        if cached is not None:
+            return cached
+    result = _build_watchouts(budget, limit)
+    with _lock:
+        _watchouts_cache["by_params"][params] = result
+    return result
 
 
 # --------------------------------------------------------------------------- #

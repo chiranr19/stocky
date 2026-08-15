@@ -4,6 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import type { RadarResponse, RadarRow } from "@/lib/types";
 import { fmtPct } from "@/lib/format";
 import { Term } from "@/components/ui/Term";
+import { InfoPop } from "@/components/ui/InfoPop";
 import { ScoreBadge } from "@/components/ui/primitives";
 import { StockRowItem } from "@/components/stocks/StockRowItem";
 import { FlagChips } from "@/components/flags/Flags";
@@ -26,24 +27,13 @@ function DepthBar({ depth }: { depth: number }) {
   );
 }
 
-/** "What happened after similar dips" — base rates with N and worst case. */
-export function EchoChip({ r, compact = false }: { r: RadarRow; compact?: boolean }) {
-  if (!r.echo) {
-    return (
-      <span
-        className="text-[10px] text-faint"
-        title={
-          "Fewer than 6 comparable dips in this stock's ~5 years of history. " +
-          "Today's pullback is genuinely unusual for it — which cuts both ways: " +
-          "unusual is not the same as opportunity, it means history has less to say here."
-        }
-      >
-        <Term k="sample_size">rare setup — too few past cases</Term>
-      </span>
-    );
-  }
-  const e = r.echo;
-  const ups = Math.round(e.win_rate * e.n);
+const NO_ECHO_NOTE =
+  "Fewer than 6 comparable dips in this stock's ~5 years of history. " +
+  "Today's pullback is genuinely unusual for it — which cuts both ways: " +
+  "unusual is not the same as opportunity, it means history has less to say here.";
+
+/** Shared derivation so the desktop chip and the phone line never disagree. */
+function echoParts(e: NonNullable<RadarRow["echo"]>) {
   // "exact" = same depth bucket; "at_least" = widened superset, must be labeled.
   // Fields are optional-safe: an older cached payload must not break the page.
   const match =
@@ -55,25 +45,43 @@ export function EchoChip({ r, compact = false }: { r: RadarRow; compact?: boolea
   // Sample quality: 9 cases all from one bull year is weak evidence, and the
   // UI must say so rather than letting the number look authoritative.
   const conf = e.confidence ?? "low";
-  const confTone =
-    conf === "high" ? "text-up" : conf === "medium" ? "text-muted" : "text-down";
   const confNote =
     conf === "high"
       ? `Spread across ${e.n_years} different years — the strongest sample this stock offers.`
       : conf === "medium"
         ? `Covers ${e.n_years} years; decent, but not many market regimes.`
         : `Thin or clustered in ${e.n_years ?? 1} year(s) — treat as a hint, not evidence.`;
+  const explain =
+    `Past episodes where this stock was ${match} below its high, in the same trend ` +
+    `state. Median next-month move ${fmtPct(e.median_fwd_pct)}, best ${fmtPct(e.best_pct)}, ` +
+    `worst ${fmtPct(e.worst_pct)}. A base rate over ${e.n} cases — not a forecast.\n\n` +
+    `Sample confidence: ${conf}. ${confNote}`;
+  return { match, conf, explain, ups: Math.round(e.win_rate * e.n) };
+}
+
+/**
+ * "What happened after similar dips" — base rates with N and worst case.
+ *
+ * Only rendered at `lg` and up, where hover exists, so the explanation stays a
+ * `title`. It also carries nested `Term` buttons, which could not live inside
+ * an InfoPop's button without producing invalid HTML. Touch devices get
+ * {@link EchoLine} instead, which is tappable.
+ */
+export function EchoChip({ r, compact = false }: { r: RadarRow; compact?: boolean }) {
+  if (!r.echo) {
+    return (
+      <span className="text-[10px] text-faint" title={NO_ECHO_NOTE}>
+        <Term k="sample_size">rare setup — too few past cases</Term>
+      </span>
+    );
+  }
+  const e = r.echo;
+  const { match, conf, explain, ups } = echoParts(e);
+  const confTone =
+    conf === "high" ? "text-up" : conf === "medium" ? "text-muted" : "text-down";
 
   return (
-    <div
-      className={`text-right ${compact ? "text-[10px]" : "text-xs"}`}
-      title={
-        `Past episodes where this stock was ${match} below its high, in the same trend ` +
-        `state. Median next-month move ${fmtPct(e.median_fwd_pct)}, best ${fmtPct(e.best_pct)}, ` +
-        `worst ${fmtPct(e.worst_pct)}. A base rate over ${e.n} cases — not a forecast.\n\n` +
-        `Sample confidence: ${conf}. ${confNote}`
-      }
-    >
+    <div className={`text-right ${compact ? "text-[10px]" : "text-xs"}`} title={explain}>
       <div className="text-muted">
         <span className="tnum text-ink">{e.n}</span> {match} →{" "}
         <span className={`tnum font-semibold ${e.median_fwd_pct >= 0 ? "text-up" : "text-down"}`}>
@@ -87,6 +95,43 @@ export function EchoChip({ r, compact = false }: { r: RadarRow; compact?: boolea
         <span className={confTone}>{conf} conf</span>
       </div>
     </div>
+  );
+}
+
+/**
+ * Single-line echo for the phone layout.
+ *
+ * The desktop grid hides depth and echo behind `md:`/`lg:` breakpoints — on a
+ * phone that removed exactly the evidence this page exists to show, leaving a
+ * bare score. This restores it in one wrapping line.
+ */
+function EchoLine({ r }: { r: RadarRow }) {
+  if (!r.echo) {
+    return (
+      <InfoPop content={NO_ECHO_NOTE} align="left">
+        <span className="text-[10px] text-faint underline decoration-dotted underline-offset-2">
+          rare setup — too few past cases
+        </span>
+      </InfoPop>
+    );
+  }
+  const e = r.echo;
+  const { match, conf, explain } = echoParts(e);
+  const confTone =
+    conf === "high" ? "text-up" : conf === "medium" ? "text-muted" : "text-down";
+
+  return (
+    <InfoPop content={explain} align="left">
+      <span className="text-[10px] leading-relaxed text-muted underline decoration-dotted underline-offset-2">
+        <span className="tnum text-ink">{e.n}</span> {match} →{" "}
+        <span className={`tnum font-semibold ${e.median_fwd_pct >= 0 ? "text-up" : "text-down"}`}>
+          {fmtPct(e.median_fwd_pct)}
+        </span>{" "}
+        next mo · worst{" "}
+        <span className="tnum text-down">{fmtPct(e.worst_pct)}</span> ·{" "}
+        <span className={confTone}>{conf} conf</span>
+      </span>
+    </InfoPop>
   );
 }
 
@@ -117,22 +162,38 @@ export function RadarRowItem({ r, rank }: { r: RadarRow; rank?: number }) {
   // entry score must never quietly hide a hazard.
   const otherRisks = (r.flags ?? []).filter((f) => f.code !== "falling_knife");
   return (
-    <div className="flex items-center gap-3">
-      <div className="min-w-0 flex-1">
-        <StockRowItem row={r.row} rank={rank} />
+    <div className="border-b border-hair/40 last:border-0">
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <StockRowItem row={r.row} rank={rank} />
+        </div>
+        <div className="hidden shrink-0 md:block">
+          <DepthBar depth={r.depth_pct} />
+        </div>
+        <div className="hidden w-44 shrink-0 lg:block">
+          <EchoChip r={r} />
+        </div>
+        <div className="hidden max-w-[190px] shrink-0 justify-end xl:flex">
+          <FlagChips flags={otherRisks} max={2} compact />
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5 pr-2">
+          {r.falling_knife && <KnifeChip />}
+          <InfoPop content={explainEntry(r)}>
+            <ScoreBadge score={r.entry_score} />
+          </InfoPop>
+        </div>
       </div>
-      <div className="hidden shrink-0 md:block">
-        <DepthBar depth={r.depth_pct} />
-      </div>
-      <div className="hidden w-44 shrink-0 lg:block">
-        <EchoChip r={r} />
-      </div>
-      <div className="hidden max-w-[190px] shrink-0 justify-end xl:flex">
-        <FlagChips flags={otherRisks} max={2} compact />
-      </div>
-      <div className="flex shrink-0 items-center gap-1.5 pr-2" title={explainEntry(r)}>
-        {r.falling_knife && <KnifeChip />}
-        <ScoreBadge score={r.entry_score} />
+
+      {/* Phone/tablet: the columns above are hidden below xl, so restore their
+          content here rather than shipping a score with no evidence behind it. */}
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 px-2.5 pb-2 pl-9 xl:hidden">
+        <span className="tnum shrink-0 text-[11px] font-semibold text-down md:hidden">
+          −{r.depth_pct.toFixed(1)}% dip
+        </span>
+        <span className="lg:hidden">
+          <EchoLine r={r} />
+        </span>
+        {otherRisks.length > 0 && <FlagChips flags={otherRisks} max={2} compact />}
       </div>
     </div>
   );

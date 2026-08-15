@@ -39,7 +39,7 @@ import { WatchlistStrip } from "@/components/pulse/WatchlistStrip";
 import { StockRowItem } from "@/components/stocks/StockRowItem";
 import { RadarRowItem } from "@/components/radar/RadarList";
 import { Readings } from "@/components/learn/Readings";
-import { FlagChips } from "@/components/flags/Flags";
+import { WatchoutRowItem } from "@/components/watchouts/WatchoutList";
 import { ErrorCard, WarmingNotice } from "@/components/ui/States";
 
 export default function PulsePage() {
@@ -72,7 +72,8 @@ export default function PulsePage() {
   return (
     <div className="space-y-10">
       {/* Intro */}
-      <div className="flex items-center justify-between gap-3">
+      {/* Stacks on phones — side by side the heading collapses to a few chars wide. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Market Pulse</h1>
           <p className="text-sm text-muted">
@@ -170,22 +171,11 @@ export default function PulsePage() {
         <div className="card p-1.5">
           {watchouts ? (
             watchouts.rows.length ? (
-              watchouts.rows.slice(0, 5).map((r, i) => (
-                <div key={r.row.ticker} className="flex items-center gap-3">
-                  <div className="min-w-0 flex-1">
-                    <StockRowItem row={r.row} rank={i + 1} />
-                  </div>
-                  <div className="hidden max-w-[280px] shrink-0 justify-end md:flex">
-                    <FlagChips flags={r.flags} max={2} />
-                  </div>
-                  <div className="shrink-0 pr-3 text-right">
-                    <div className="tnum text-sm font-semibold text-down">
-                      {r.risk_score.toFixed(0)}
-                    </div>
-                    <div className="text-[10px] text-faint">risk</div>
-                  </div>
-                </div>
-              ))
+              watchouts.rows
+                .slice(0, 5)
+                .map((r, i) => (
+                  <WatchoutRowItem key={r.row.ticker} r={r} rank={i + 1} />
+                ))
             ) : (
               <div className="px-3 py-6 text-center text-sm text-faint">
                 Nothing at this budget is carrying the standard risk patterns.

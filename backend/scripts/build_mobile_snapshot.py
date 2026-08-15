@@ -29,6 +29,8 @@ gainers = load("/movers?type=gainers&budget=200&limit=10")
 losers = load("/movers?type=losers&budget=200&limit=10")
 signals = load("/signals?budget=200")
 pulse = load("/pulse")
+radar_data = load("/radar?budget=200&lookback=3m&limit=5")
+watchouts_data = load("/watchouts?budget=200&limit=5")
 
 _gid = 0
 
@@ -193,6 +195,71 @@ for c in pulse["watchlist"]:
       <div class="rprice"><div class="num price">{money(c['price'])}</div>{chg(c['change_pct'], arrow=False)}</div>
     </div>"""
 
+# ---------------------------------------------------------------- entry radar
+def echo_line(e):
+    """One-line base rate: N similar dips -> median move, worst case, confidence."""
+    if not e:
+        return '<span class="dim">rare setup &mdash; too few past cases</span>'
+    kind = (
+        f"dips &ge;{e['min_depth_pct']:.0f}%"
+        if e.get("kind") == "at_least" and e.get("min_depth_pct") is not None
+        else f"dips {e.get('bucket_lo', 0):.0f}&ndash;{e.get('bucket_hi', 0):.0f}%"
+    )
+    med = e["median_fwd_pct"]
+    cls = "pos" if med >= 0 else "neg"
+    conf = e.get("confidence", "low")
+    return (
+        f'<span class="num">{e["n"]}</span> {kind} &rarr; '
+        f'<span class="num {cls}">{med:+.1f}%</span> next mo · '
+        f'worst <span class="num neg">{e["worst_pct"]:+.1f}%</span> · '
+        f'<span class="dim">{conf} conf</span>'
+    )
+
+
+radar_html = ""
+for i, r in enumerate(radar_data["rows"], 1):
+    knife = '<span class="kchip">knife</span>' if r["falling_knife"] else ""
+    fchips = "".join(
+        f'<span class="fchip fr">{esc(f["label"])}</span>' for f in r.get("flags", [])[:2]
+    )
+    radar_html += f"""
+    <div class="row2">
+      <div class="r2top">
+        <span class="rank num">{i}</span>
+        <div class="ident"><div class="tick">{esc(r['row']['ticker'])}{knife}</div>
+          <div class="name">{esc(r['row']['name'])}</div></div>
+        <div class="rprice"><div class="num price">{money(r['row']['price'])}</div>
+          <span class="num neg">&minus;{r['depth_pct']:.1f}%</span></div>
+        {score_chip(r['entry_score'])}
+      </div>
+      <div class="r2sub">{echo_line(r.get('echo'))}</div>
+      {f'<div class="r2flags">{fchips}</div>' if fchips else ''}
+    </div>"""
+if not radar_html:
+    radar_html = '<div class="empty">No qualifying pullbacks at this budget — most names are near their highs.</div>'
+
+# ---------------------------------------------------------------- watch-outs
+watchouts_html = ""
+for i, r in enumerate(watchouts_data["rows"], 1):
+    fchips = "".join(
+        f'<span class="fchip f{f["severity"][0]}">{esc(f["label"])}</span>'
+        for f in r.get("flags", [])[:3]
+    )
+    watchouts_html += f"""
+    <div class="row2">
+      <div class="r2top">
+        <span class="rank num">{i}</span>
+        <div class="ident"><div class="tick">{esc(r['row']['ticker'])}</div>
+          <div class="name">{esc(r['row']['name'])}</div></div>
+        <div class="rprice"><div class="num price">{money(r['row']['price'])}</div>
+          {chg(r['row']['change_pct'], arrow=False)}</div>
+        <span class="chip chip-risk num">{r['risk_score']:.0f}</span>
+      </div>
+      <div class="r2flags">{fchips}</div>
+    </div>"""
+if not watchouts_html:
+    watchouts_html = '<div class="empty">Nothing at this budget is carrying the standard risk patterns.</div>'
+
 # ---------------------------------------------------------------- page
 CSS = """
 :root{--bg:#0A0B0D;--panel:#0F1114;--elev:#15181D;--ink:#E7E9EC;--muted:#8B929C;
@@ -248,6 +315,18 @@ padding:3px 7px;border-radius:7px;border:1px solid}
 .chip-mid{color:var(--accent);border-color:rgba(124,107,255,.4);background:rgba(124,107,255,.1)}
 .chip-low{color:var(--muted);border-color:var(--hair);background:var(--elev)}
 .empty{padding:14px;font-size:13px;color:var(--faint);text-align:center}
+.chip-risk{color:var(--down);border-color:rgba(246,70,93,.4);background:rgba(246,70,93,.1)}
+.row2{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.04)}
+.row2:last-child{border-bottom:0}
+.r2top{display:flex;align-items:center;gap:10px}
+.r2sub{font-size:11px;color:var(--muted);margin:6px 0 0 24px;line-height:1.4}
+.r2flags{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 0 24px}
+.fchip{font-size:10px;padding:2px 6px;border-radius:5px;border:1px solid}
+.fh,.fr{color:var(--down);border-color:rgba(246,70,93,.4);background:rgba(246,70,93,.1)}
+.fm{color:#E8A33D;border-color:rgba(232,163,61,.4);background:rgba(232,163,61,.1)}
+.fl{color:var(--muted);border-color:var(--hair);background:var(--elev)}
+.kchip{font-size:9px;padding:1px 5px;margin-left:6px;border-radius:4px;color:var(--down);
+border:1px solid rgba(246,70,93,.4);background:rgba(246,70,93,.1);vertical-align:middle}
 .tabs{display:flex;gap:4px;padding:8px;border-bottom:1px solid var(--hair)}
 .tab{flex:1;padding:7px;border-radius:8px;border:0;background:transparent;color:var(--muted);
 font:600 13px system-ui;cursor:pointer}
@@ -292,6 +371,14 @@ html = f"""<title>Stocky — Market Snapshot</title>
   <h2>Market overview <span class="sub">check the weather first</span></h2>
   {tile_html}
   {breadth_html}
+
+  <h2>Entry Radar <span class="sub">pullback setups, validated by history</span></h2>
+  <div class="card rows">{radar_html}</div>
+  <p class="note">Ranked by entry score (depth 35, trend 30, RSI 20, quality 15). Historical echo: what this stock actually did after similar dips. Setups to study — not buy signals.</p>
+
+  <h2>Watch-outs <span class="sub">heaviest risk patterns</span></h2>
+  <div class="card rows">{watchouts_html}</div>
+  <p class="note">Named hazards — broken trends, value traps, volatility-without-returns. A teaching list, not a sell list.</p>
 
   <h2>Sector pulse <span class="sub">top affordable (≤$200), ranked · tap to open</span></h2>
   {sector_html}

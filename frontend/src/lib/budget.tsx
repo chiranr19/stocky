@@ -11,12 +11,13 @@ import {
 // null = no cap ("show me everything"). Default is the user's real $200 max.
 export type Budget = number | null;
 
-export const BUDGET_PRESETS: { label: string; value: Budget }[] = [
-  { label: "$50", value: 50 },
-  { label: "$100", value: 100 },
-  { label: "$200", value: 200 },
-  { label: "$500", value: 500 },
-  { label: "No cap", value: null },
+// `short` is the phone rendering — the full labels overflow a 375px header.
+export const BUDGET_PRESETS: { label: string; short: string; value: Budget }[] = [
+  { label: "$50", short: "50", value: 50 },
+  { label: "$100", short: "100", value: 100 },
+  { label: "$200", short: "200", value: 200 },
+  { label: "$500", short: "500", value: 500 },
+  { label: "No cap", short: "All", value: null },
 ];
 
 const DEFAULT_BUDGET: Budget = 200;

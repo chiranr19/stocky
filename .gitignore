@@ -14,6 +14,11 @@ backend/data/
 *.duckdb
 *.duckdb.wal
 
+# Generated snapshots/digests — rebuilt from live data on every run
+backend/scripts/digest.html
+backend/scripts/digest.txt
+backend/scripts/stocky_snapshot.html
+
 # Secrets
 .env
 .env.local

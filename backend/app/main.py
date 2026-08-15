@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 from . import __version__
 from .config import settings
@@ -28,6 +29,7 @@ app = FastAPI(
     summary="A stock-market learning instrument — not a trading terminal.",
 )
 
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,

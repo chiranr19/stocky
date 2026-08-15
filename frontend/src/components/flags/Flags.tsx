@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AlertTriangle, ChevronDown, ShieldCheck } from "lucide-react";
 import type { RiskFlag } from "@/lib/types";
+import { InfoPop } from "@/components/ui/InfoPop";
 
 const SEVERITY = {
   high: { risk: "border-down/50 bg-down/15 text-down", strength: "border-up/50 bg-up/15 text-up" },
@@ -10,20 +11,24 @@ const SEVERITY = {
   low: { risk: "border-hair bg-elevated text-muted", strength: "border-hair bg-elevated text-muted" },
 } as const;
 
-/** Compact named-pattern chip. Hover gives the full reasoning. */
+/** Compact named-pattern chip. Tap (or hover) gives the full reasoning. */
 export function FlagChip({ flag, compact = false }: { flag: RiskFlag; compact?: boolean }) {
   const cls = SEVERITY[flag.severity]?.[flag.kind] ?? SEVERITY.low.risk;
   const Icon = flag.kind === "risk" ? AlertTriangle : ShieldCheck;
   return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-medium ${cls} ${
-        compact ? "text-[10px]" : "text-[11px]"
-      }`}
-      title={`${flag.label} — ${flag.why}\n\nWhat vets do: ${flag.what_vets_do}`}
+    <InfoPop
+      content={`${flag.label} — ${flag.why}\n\nWhat vets do: ${flag.what_vets_do}`}
+      align="left"
     >
-      <Icon className="h-3 w-3 shrink-0" />
-      {flag.label}
-    </span>
+      <span
+        className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-medium ${cls} ${
+          compact ? "text-[10px]" : "text-[11px]"
+        }`}
+      >
+        <Icon className="h-3 w-3 shrink-0" />
+        {flag.label}
+      </span>
+    </InfoPop>
   );
 }
 

@@ -51,12 +51,43 @@ data shows, what a veteran does with it, and **what would make that reading
 wrong**. Tones are limited to constructive / caution / neutral: interpretations,
 never instructions (enforced by a test that fails on advice-like phrasing).
 
+## Daily email digest
+
+A GitHub Actions cron (weekdays, after the US close) refreshes the data and
+emails you the day's picture — so the dashboard reaches your phone with the
+laptop off. Two sections: **At a glance** (market read, #1 setup, #1 watch-out)
+and **The details** (full radar + watch-out tables with echo stats, movers, the
+week's calendar), plus the interactive snapshot as an attachment.
+
+**No LLM is involved anywhere in the digest.** Every sentence is assembled by
+deterministic templates from values the tested engines computed — the same
+readings, flags and base rates the app shows. The footer names the data source
+and as-of date, and a test suite fails the build on advice-like phrasing or
+fabricated numbers.
+
+One-time setup (only you can do this — it needs your Google account):
+
+```bash
+gh secret set GMAIL_USER && gh secret set GMAIL_APP_PASSWORD && gh secret set DIGEST_TO
+```
+
+`GMAIL_APP_PASSWORD` is a 16-character [app password](https://myaccount.google.com/apppasswords)
+(requires 2-Step Verification), **not** your Google password. Until the secrets
+exist the workflow still runs green and prints these instructions instead of
+failing. Trigger it by hand from the Actions tab → *Daily Digest* → *Run
+workflow*. Preview it locally with `python backend/scripts/build_digest.py`.
+
 ## Stack
 
 `backend/` — **FastAPI + DuckDB + yfinance**: warms the full S&P 500 on startup
 (priority tickers first), computes all analytics from cached daily bars.
 `frontend/` — **Next.js (App Router) + Tailwind + Recharts + lightweight-charts**:
 dark fintech workbench with a ⌘K palette over the whole universe.
+
+**On a phone**, every page carries the same information it does on a desktop —
+the radar's depth and base-rate stats and the watch-out hazard chips move to a
+second line rather than being hidden, and every hover explanation is also a tap
+target (`title` alone doesn't exist on touch).
 
 ## Run it
 
@@ -98,5 +129,6 @@ seconds — progress at `/health/data`). Tests: `cd backend && pytest`.
 
 ## Roadmap
 
-Monte Carlo scenario cones · Claude-written Daily Brief (GitHub Actions cron) ·
-editable watchlist · FRED macro feed.
+Monte Carlo scenario cones · Claude-written Daily Brief (distinct from the
+grounded digest above, which stays LLM-free) · editable watchlist · FRED macro
+feed.

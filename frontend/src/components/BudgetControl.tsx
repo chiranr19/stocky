@@ -21,13 +21,15 @@ export function BudgetControl() {
             <button
               key={p.label}
               onClick={() => setBudget(p.value)}
-              className={`tnum rounded-md px-2 py-1 text-xs transition-colors ${
+              className={`tnum rounded-md px-1.5 py-1 text-xs transition-colors sm:px-2 ${
                 active
                   ? "bg-accent text-white"
                   : "text-muted hover:bg-elevated hover:text-ink"
               }`}
+              aria-label={`Max share price ${p.label}`}
             >
-              {p.label}
+              <span className="sm:hidden">{p.short}</span>
+              <span className="hidden sm:inline">{p.label}</span>
             </button>
           );
         })}
