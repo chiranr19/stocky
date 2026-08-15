@@ -206,6 +206,29 @@ def test_html_is_email_safe(digest):
     assert not re.search(r'src\s*=\s*["\']https?://', html)
 
 
+def test_upcoming_events_are_not_windowed_to_one_week():
+    """Macro releases are ~monthly; a 7-day window left this section empty most
+    days. The next few events must show regardless of how far out they are."""
+    from build_digest import _upcoming_events
+
+    today = dt.date.today()
+    cal = CalendarResponse(
+        earnings=[],
+        macro=[
+            MacroEvent(date=today - dt.timedelta(days=3), label="Past", kind="cpi"),
+            MacroEvent(date=today + dt.timedelta(days=25), label="CPI release", kind="cpi"),
+            MacroEvent(date=today + dt.timedelta(days=9), label="Jobs report", kind="jobs"),
+        ],
+    )
+    events = _upcoming_events(cal)
+    assert [lbl for _, lbl in events] == ["Jobs report", "CPI release"]  # sorted, past dropped
+
+    html = build_html(*_fixtures()[:5], cal)
+    txt = build_text(*_fixtures()[:5], cal)
+    for out in (html, txt):
+        assert "CPI release" in out  # 25 days out — would have been cut by a week window
+
+
 def test_empty_inputs_do_not_crash():
     """A market holiday or a thin day must degrade, not explode."""
     o, r, w, g, l, c = _fixtures()

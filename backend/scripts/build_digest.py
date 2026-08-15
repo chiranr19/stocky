@@ -50,6 +50,20 @@ def _conf_label(conf: str) -> str:
     return {"high": "strong", "medium": "decent", "low": "thin"}.get(conf, conf)
 
 
+def _upcoming_events(cal, limit: int = 5) -> list[tuple[dt.date, str]]:
+    """The next few dated events, earnings and macro merged, soonest first.
+
+    Deliberately not windowed to "this week": macro releases are roughly
+    monthly, so a 7-day window leaves this section empty most days. Knowing the
+    next CPI print is three weeks out is still worth a line.
+    """
+    today = dt.date.today()
+    events = [(e.date, e.label) for e in cal.macro if e.date >= today]
+    events += [(e.date, f"{e.ticker} earnings") for e in cal.earnings if e.date >= today]
+    events.sort(key=lambda x: x[0])
+    return events[:limit]
+
+
 # ── Data assembly ────────────────────────────────────────────────────────────
 
 def _gather():
@@ -137,18 +151,12 @@ def build_text(overview, radar, watchouts, gainers, losers, cal) -> str:
     lines.append("  Losers:  " + ", ".join(
         f"{r.ticker} {_chg(r.change_pct)}" for r in losers))
 
-    # Calendar
-    today = dt.date.today()
-    week_end = today + dt.timedelta(days=7)
-    upcoming_macro = [e for e in cal.macro if e.date <= week_end]
-    upcoming_earn = [e for e in cal.earnings if e.date <= week_end]
-    if upcoming_macro or upcoming_earn:
+    upcoming = _upcoming_events(cal)
+    if upcoming:
         lines.append("")
-        lines.append("This week:")
-        for e in upcoming_macro:
-            lines.append(f"  {e.date.strftime('%a %b %d')} — {e.label}")
-        for e in upcoming_earn:
-            lines.append(f"  {e.date.strftime('%a %b %d')} — {e.ticker} earnings")
+        lines.append("Coming up:")
+        for d, label in upcoming:
+            lines.append(f"  {d.strftime('%a %b %d')} — {label}")
 
     lines.append("")
     lines.append("-" * 50)
@@ -286,22 +294,17 @@ def build_html(overview, radar, watchouts, gainers, losers, cal) -> str:
     losers_html = ", ".join(
         f'<strong>{e(r.ticker)}</strong> {_chg_html(r.change_pct)}' for r in losers)
 
-    # Calendar
-    today = dt.date.today()
-    week_end = today + dt.timedelta(days=7)
     cal_rows = ""
-    for ev in cal.macro:
-        if ev.date <= week_end:
-            cal_rows += (
-                f'<tr><td style="padding:4px 8px;font-size:12px">'
-                f'{ev.date.strftime("%a %b %d")}</td>'
-                f'<td style="padding:4px 8px;font-size:12px">{e(ev.label)}</td></tr>')
-    for ev in cal.earnings:
-        if ev.date <= week_end:
-            cal_rows += (
-                f'<tr><td style="padding:4px 8px;font-size:12px">'
-                f'{ev.date.strftime("%a %b %d")}</td>'
-                f'<td style="padding:4px 8px;font-size:12px">{e(ev.ticker)} earnings</td></tr>')
+    for ev_date, ev_label in _upcoming_events(cal):
+        days_out = (ev_date - dt.date.today()).days
+        when = "today" if days_out == 0 else "tomorrow" if days_out == 1 else f"in {days_out}d"
+        cal_rows += (
+            f'<tr>'
+            f'<td style="padding:4px 8px;font-size:12px;white-space:nowrap">'
+            f'{ev_date.strftime("%a %b %d")}</td>'
+            f'<td style="padding:4px 8px;font-size:12px">{e(ev_label)}</td>'
+            f'<td style="padding:4px 8px;font-size:11px;color:#9CA3AF;text-align:right">{when}</td>'
+            f'</tr>')
 
     return f"""\
 <div style="max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#111827;line-height:1.5">
