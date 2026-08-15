@@ -90,8 +90,8 @@ Planned: `GET /cone?ticker=` (Monte Carlo bands), `GET /brief` (Daily Brief text
 - **Frontend routes:** `/` Pulse · `/radar` Entry Radar · `/explore` · `/compare` · `/stock/[ticker]` · `/time-machine` · `/calendar`. Global budget via `lib/budget.tsx`; teaching via `lib/glossary.ts` + `components/ui/Term.tsx`.
 - **History depth:** `market.HISTORY_LOOKBACK` = 1200 days (~3.3y) so radar echo stats have a real sample; widening it again forces a one-time universe back-fill.
 
-## User context
-- Beginner investor; risk tolerance moderate; separately keeping core money in index funds — this app informs only a small "conviction" allocation
+## Who this is built for
+- **Target reader:** a beginner investor with moderate risk tolerance who keeps core money in index funds and runs a small "conviction" sleeve to learn actively. Design for that reader — assume no jargon, always show the boring benchmark next to the exciting pick, and never imply this app represents a whole portfolio.
 - Never present outputs as financial advice; include a small persistent disclaimer in the UI
 - Default watchlist to seed: NVDA, AAPL, MSFT, GOOGL, AMZN, TSLA, AMD, META, VOO (benchmark)
 
