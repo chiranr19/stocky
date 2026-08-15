@@ -12,6 +12,7 @@ import type {
   StockDetail,
   TimeMachineResult,
   UniverseItem,
+  WatchoutsResponse,
 } from "./types";
 
 const BASE_URL =
@@ -83,6 +84,9 @@ export const getRadar = (
   getJSON<RadarResponse>(
     `/radar?${budgetParam(budget)}&lookback=${lookback}&limit=${limit}`,
   );
+
+export const getWatchouts = (budget: number | null, limit = 30) =>
+  getJSON<WatchoutsResponse>(`/watchouts?${budgetParam(budget)}&limit=${limit}`);
 
 export const getCompare = (tickers: string[]) =>
   getJSON<CompareResponse>(`/compare?tickers=${tickers.join(",")}`);

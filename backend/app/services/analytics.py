@@ -38,9 +38,12 @@ from ..models import (
     SectorPanel,
     SectorsResponse,
     SeriesPoint,
+    RiskFlag,
     SignalsResponse,
     StockDetail,
     StockRow,
+    WatchoutRow,
+    WatchoutsResponse,
 )
 from . import market
 from .metrics import (
@@ -48,9 +51,11 @@ from .metrics import (
     compute_metrics,
     correlation_matrix,
     moving_average,
+    pullback_series,
     return_histogram,
     rsi,
 )
+from . import flags as flags_service
 from . import insights
 from .screener import ScoredStock, is_eligible, screen_by_sector
 from .simulation import max_drawdown
@@ -364,6 +369,60 @@ def build_signals(budget: float | None, limit: int = 40) -> SignalsResponse:
 
 
 # --------------------------------------------------------------------------- #
+# /watchouts — the "what a poor setup looks like" showcase
+# --------------------------------------------------------------------------- #
+def build_watchouts(budget: float | None, limit: int) -> WatchoutsResponse:
+    """Stocks carrying the heaviest named risk patterns, worst first.
+
+    The deliberate mirror of the Entry Radar: seeing *why* a setup is bad is
+    what makes the good ones legible. Educational — not a sell list.
+    """
+    metrics, latest = universe_metrics()
+    closes = universe_closes()
+
+    rows: list[WatchoutRow] = []
+    for ticker, m in metrics.items():
+        if sector_of(ticker) is None:
+            continue
+        # Affordability still applies — these are the names they'd otherwise be
+        # tempted by at this budget.
+        if budget is not None and m.price > budget:
+            continue
+
+        # Pullback depth (3M) gives the falling-knife rule its teeth.
+        depth_pct = None
+        adj = closes.get(ticker)
+        if adj is not None and len(adj) > 70:
+            d = pullback_series(adj, 63)
+            if not pd.isna(d.iloc[-1]):
+                depth_pct = float(d.iloc[-1])
+
+        found = flags_service.evaluate(m, depth_pct)
+        risks = [f for f in found if f.kind == "risk"]
+        if not risks:
+            continue
+        score = flags_service.risk_score(found)
+        rows.append(
+            WatchoutRow(
+                row=to_row(m),
+                risk_score=score,
+                flags=[RiskFlag(**vars(f)) for f in risks],
+            )
+        )
+
+    # Many names max out the same flag set, so break ties by actual damage done
+    # (worst year first) — alphabetical order would teach nothing.
+    rows.sort(
+        key=lambda r: (
+            -r.risk_score,
+            r.row.ret_1y if r.row.ret_1y is not None else 0.0,
+            r.row.ticker,
+        )
+    )
+    return WatchoutsResponse(as_of=latest, budget=budget, rows=rows[:limit])
+
+
+# --------------------------------------------------------------------------- #
 # /compare
 # --------------------------------------------------------------------------- #
 def _downsample(series: pd.Series, max_points: int = 220) -> pd.Series:
@@ -517,10 +576,9 @@ def build_stock_detail(ticker: str) -> StockDetail:
     from .radar import radar_for_ticker
 
     entry = radar_for_ticker(ticker)
-    readings = [
-        Reading(**vars(r))
-        for r in insights.stock_readings(m, entry.depth_pct if entry else None)
-    ]
+    depth_pct = entry.depth_pct if entry else None
+    readings = [Reading(**vars(r)) for r in insights.stock_readings(m, depth_pct)]
+    found = flags_service.evaluate(m, depth_pct)
 
     return StockDetail(
         ticker=ticker,
@@ -536,4 +594,6 @@ def build_stock_detail(ticker: str) -> StockDetail:
         benchmark_histogram=bench_hist,
         entry=entry,
         readings=readings,
+        flags=[RiskFlag(**vars(f)) for f in found],
+        risk_score=flags_service.risk_score(found),
     )

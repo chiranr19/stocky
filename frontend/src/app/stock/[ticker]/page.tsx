@@ -13,6 +13,7 @@ import { ErrorCard, Loading } from "@/components/ui/States";
 import { CandleChart } from "@/components/stock/CandleChart";
 import { EchoChip, KnifeChip } from "@/components/radar/RadarList";
 import { Readings } from "@/components/learn/Readings";
+import { FlagChips, FlagPanel } from "@/components/flags/Flags";
 import { RsiPanel } from "@/components/stock/RsiPanel";
 import { FundamentalsCard } from "@/components/stock/FundamentalsCard";
 import { DistributionBars } from "@/components/compare/DistributionBars";
@@ -152,6 +153,9 @@ export default function StockPage() {
         title={`How to read ${data.ticker} right now`}
         columns={2}
       />
+
+      {/* Named good/bad patterns */}
+      <FlagPanel flags={data.flags} />
 
       {/* Candles + RSI */}
       <CandleChart candles={data.candles} ma50={data.ma50} ma200={data.ma200} />

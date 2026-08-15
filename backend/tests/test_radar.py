@@ -154,6 +154,34 @@ def test_echo_stats_labels_kind_and_min_depth():
     assert wide.kind == "at_least"
 
 
+def test_echo_confidence_reflects_sample_size_and_regime_spread():
+    # 6 episodes inside a single year → low confidence, however clean the data.
+    one_year = _series(list(np.linspace(100, 200, 200)), start="2024-01-01")
+    eps = [one_year.index[i] for i in (0, 12, 24, 36, 48, 60)]
+    tight = echo_stats(one_year, eps, horizon=5, min_episodes=6)
+    assert tight.n_years == 1 and tight.confidence == "low"
+
+    # 14 episodes spread over 4 calendar years → high confidence.
+    long = _series(list(np.linspace(100, 300, 1100)), start="2021-01-01")
+    spread = [long.index[i] for i in range(0, 1050, 75)]
+    wide = echo_stats(long, spread, horizon=5, min_episodes=6)
+    assert wide.n_years >= 3 and wide.confidence == "high"
+
+
+def test_analyze_one_passes_confidence_through_to_the_api_model():
+    # Regression: n_years/confidence were computed but dropped when building the
+    # response model, so every sample looked equally (un)trustworthy.
+    rise = list(np.linspace(100, 200, 900))
+    dip = list(np.linspace(200, 170, 15))
+    adj = _series(rise + dip, start="2021-01-01")
+    analyzed = _analyze_one(_metrics(), adj, 63)
+    assert analyzed is not None
+    _, _, echo = analyzed
+    if echo is not None:  # only assert when a sample was actually found
+        assert echo.n_years >= 1
+        assert echo.confidence in ("high", "medium", "low")
+
+
 def test_widened_bucket_is_a_superset_of_the_exact_bucket():
     # Dips of ~12% and ~22%: the exact [10,15) bucket sees one run, the widened
     # "at least 10%" bucket must see at least as many episodes.

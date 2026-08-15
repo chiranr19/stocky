@@ -6,6 +6,7 @@ import { fmtPct } from "@/lib/format";
 import { Term } from "@/components/ui/Term";
 import { ScoreBadge } from "@/components/ui/primitives";
 import { StockRowItem } from "@/components/stocks/StockRowItem";
+import { FlagChips } from "@/components/flags/Flags";
 
 /** Tiny horizontal bar showing pullback depth (capped at 30% for scale). */
 function DepthBar({ depth }: { depth: number }) {
@@ -51,13 +52,26 @@ export function EchoChip({ r, compact = false }: { r: RadarRow; compact?: boolea
       : e.bucket_lo != null && e.bucket_hi != null
         ? `dips of ${e.bucket_lo.toFixed(0)}–${e.bucket_hi.toFixed(0)}%`
         : "similar dips";
+  // Sample quality: 9 cases all from one bull year is weak evidence, and the
+  // UI must say so rather than letting the number look authoritative.
+  const conf = e.confidence ?? "low";
+  const confTone =
+    conf === "high" ? "text-up" : conf === "medium" ? "text-muted" : "text-down";
+  const confNote =
+    conf === "high"
+      ? `Spread across ${e.n_years} different years — the strongest sample this stock offers.`
+      : conf === "medium"
+        ? `Covers ${e.n_years} years; decent, but not many market regimes.`
+        : `Thin or clustered in ${e.n_years ?? 1} year(s) — treat as a hint, not evidence.`;
+
   return (
     <div
       className={`text-right ${compact ? "text-[10px]" : "text-xs"}`}
       title={
         `Past episodes where this stock was ${match} below its high, in the same trend ` +
         `state. Median next-month move ${fmtPct(e.median_fwd_pct)}, best ${fmtPct(e.best_pct)}, ` +
-        `worst ${fmtPct(e.worst_pct)}. A base rate over ${e.n} cases — not a forecast.`
+        `worst ${fmtPct(e.worst_pct)}. A base rate over ${e.n} cases — not a forecast.\n\n` +
+        `Sample confidence: ${conf}. ${confNote}`
       }
     >
       <div className="text-muted">
@@ -69,7 +83,8 @@ export function EchoChip({ r, compact = false }: { r: RadarRow; compact?: boolea
       </div>
       <div className="text-[10px] text-faint">
         <span className="tnum">{ups}↑ {e.n - ups}↓</span> · worst{" "}
-        <span className="tnum text-down">{fmtPct(e.worst_pct)}</span>
+        <span className="tnum text-down">{fmtPct(e.worst_pct)}</span> ·{" "}
+        <span className={confTone}>{conf} conf</span>
       </div>
     </div>
   );
@@ -98,6 +113,9 @@ export function KnifeChip() {
 
 /** One radar row: the standard stock row + depth, entry score, echo, knife. */
 export function RadarRowItem({ r, rank }: { r: RadarRow; rank?: number }) {
+  // Any risk pattern beyond the knife flag gets surfaced here too — a strong
+  // entry score must never quietly hide a hazard.
+  const otherRisks = (r.flags ?? []).filter((f) => f.code !== "falling_knife");
   return (
     <div className="flex items-center gap-3">
       <div className="min-w-0 flex-1">
@@ -108,6 +126,9 @@ export function RadarRowItem({ r, rank }: { r: RadarRow; rank?: number }) {
       </div>
       <div className="hidden w-44 shrink-0 lg:block">
         <EchoChip r={r} />
+      </div>
+      <div className="hidden max-w-[190px] shrink-0 justify-end xl:flex">
+        <FlagChips flags={otherRisks} max={2} compact />
       </div>
       <div className="flex shrink-0 items-center gap-1.5 pr-2" title={explainEntry(r)}>
         {r.falling_knife && <KnifeChip />}

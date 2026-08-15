@@ -67,6 +67,12 @@ Built (v0.4 — the reading layer):
 - **Echo tiering**: exact depth bucket first, then a stepped widening ("dips ≥15%") down the bucket edges; `EchoStats.kind` = `exact|at_least` and the UI must label which. Took radar coverage from ~79% to ~99%.
 - **Data trust**: `HISTORY_LOOKBACK` = 2000 days (~5.5y, median ~1,377 sessions/ticker); `/health/data` reports `history_span_days`, `median_sessions`, `thinnest_ticker`; `scripts/audit_data.py` audits coverage/gaps/bad prices/anomalies (exit 2 on real problems — a handful of recent IPOs legitimately fail the 300-session bar).
 
+Built (v0.5 — good picks *and* bad picks):
+- **`services/flags.py`** — named patterns with `kind ∈ risk|strength` and `severity ∈ high|medium|low`, each carrying `why` + `what_vets_do`. Risks: falling_knife, broken_trend, value_trap, volatility_trap, very_high_volatility, overextended, death_cross, severe_drawdown, thin_liquidity. Strengths: trend_intact, constructive_pullback, calm_compounder, shallow_drawdown, deep_liquidity, golden_cross. Same no-advice test bar as insights.
+- **`GET /watchouts?budget=&limit=`** — the Entry Radar's mirror, ranked by weighted severity then by worst 1-year return (ties are common, so alphabetical would teach nothing). Frontend `/watchouts` + a paired section on Pulse.
+- Flags ride along on `StockDetail.flags`/`risk_score` and `RadarRow.flags` — **a high entry score must never hide a hazard**.
+- **Echo confidence**: `EchoStats.n_years` + `confidence` (high needs ≥12 cases across ≥3 calendar years). Regression test covers the model pass-through — the values were computed and silently dropped once.
+
 Planned: `GET /cone?ticker=` (Monte Carlo bands), `GET /brief` (Daily Brief text).
 
 ## v0.2 architecture notes

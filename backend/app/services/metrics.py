@@ -175,6 +175,10 @@ class EchoStats:
     best_pct: float
     kind: str = "exact"
     min_depth_pct: float = 0.0
+    # Reliability: episodes clustered in a single year are far weaker evidence
+    # than the same count spread across different market regimes.
+    n_years: int = 0
+    confidence: str = "low"  # 'high' | 'medium' | 'low'
 
 
 def rolling_high(series: pd.Series, window: int) -> pd.Series:
@@ -244,10 +248,26 @@ def echo_stats(
 ) -> EchoStats | None:
     """Forward-return stats over episode starts; None when the sample is too thin."""
     fwd = forward_returns(adj_close, horizon)
-    outcomes = [float(fwd.loc[ts]) for ts in episodes if ts in fwd.index and not np.isnan(fwd.loc[ts])]
+    used: list[pd.Timestamp] = []
+    outcomes: list[float] = []
+    for ts in episodes:
+        if ts in fwd.index and not np.isnan(fwd.loc[ts]):
+            used.append(ts)
+            outcomes.append(float(fwd.loc[ts]))
     if len(outcomes) < min_episodes:
         return None
+
     arr = np.array(outcomes)
+    # How many distinct calendar years the episodes span — the crude but honest
+    # proxy for "did we see this pattern in more than one kind of market?".
+    n_years = len({ts.year for ts in used})
+    if len(arr) >= 12 and n_years >= 3:
+        confidence = "high"
+    elif len(arr) >= 8 and n_years >= 2:
+        confidence = "medium"
+    else:
+        confidence = "low"
+
     return EchoStats(
         n=len(arr),
         median_fwd_pct=round(float(np.median(arr)), 2),
@@ -256,6 +276,8 @@ def echo_stats(
         best_pct=round(float(arr.max()), 2),
         kind=kind,
         min_depth_pct=round(min_depth_pct, 1),
+        n_years=n_years,
+        confidence=confidence,
     )
 
 

@@ -2,8 +2,23 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Activity, ArrowRight, Crosshair, Flame, Grid3x3, Star } from "lucide-react";
-import { getMovers, getOverview, getPulse, getRadar, getSectors } from "@/lib/api";
+import {
+  Activity,
+  ArrowRight,
+  Crosshair,
+  Flame,
+  Grid3x3,
+  ShieldAlert,
+  Star,
+} from "lucide-react";
+import {
+  getMovers,
+  getOverview,
+  getPulse,
+  getRadar,
+  getSectors,
+  getWatchouts,
+} from "@/lib/api";
 import { useBudget } from "@/lib/budget";
 import type {
   OverviewResponse,
@@ -11,6 +26,7 @@ import type {
   RadarResponse,
   SectorsResponse,
   StockRow,
+  WatchoutsResponse,
 } from "@/lib/types";
 import { fmtDate } from "@/lib/format";
 import { SectionHeader } from "@/components/ui/primitives";
@@ -23,6 +39,7 @@ import { WatchlistStrip } from "@/components/pulse/WatchlistStrip";
 import { StockRowItem } from "@/components/stocks/StockRowItem";
 import { RadarRowItem } from "@/components/radar/RadarList";
 import { Readings } from "@/components/learn/Readings";
+import { FlagChips } from "@/components/flags/Flags";
 import { ErrorCard, WarmingNotice } from "@/components/ui/States";
 
 export default function PulsePage() {
@@ -32,6 +49,7 @@ export default function PulsePage() {
   const [sectors, setSectors] = useState<SectorsResponse | null>(null);
   const [movers, setMovers] = useState<StockRow[] | null>(null);
   const [radar, setRadar] = useState<RadarResponse | null>(null);
+  const [watchouts, setWatchouts] = useState<WatchoutsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -46,6 +64,7 @@ export default function PulsePage() {
     getSectors(budget).then(setSectors).catch(() => {});
     getMovers("gainers", budget, 6).then(setMovers).catch(() => {});
     getRadar(budget, "3m", 12).then(setRadar).catch(() => {});
+    getWatchouts(budget, 8).then(setWatchouts).catch(() => {});
   }, [budget]);
 
   if (error && !overview) return <ErrorCard message={error} onRetry={load} />;
@@ -118,7 +137,58 @@ export default function PulsePage() {
             ) : (
               <div className="px-3 py-6 text-center text-sm text-faint">
                 No trend-intact pullbacks at this budget right now — most names are near
-                their highs. That's worth knowing too.
+                their highs. That&apos;s worth knowing too.
+              </div>
+            )
+          ) : (
+            <SkeletonRow />
+          )}
+        </div>
+      </section>
+
+      {/* The contrast: what a poor setup looks like */}
+      <section>
+        <SectionHeader
+          icon={ShieldAlert}
+          title="Watch-outs"
+          sub="the same market, filtered for hazards"
+          right={
+            <Link
+              href="/watchouts"
+              className="flex items-center gap-1 text-xs text-muted transition-colors hover:text-accent"
+            >
+              See all watch-outs <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          }
+        />
+        <TeachBanner>
+          Set against the radar above: these carry named hazards — broken trends, value
+          traps, volatility that wasn&apos;t paid for. Comparing the two lists is the
+          fastest way to learn what separates a dip from a trap. A <b>teaching list</b>,
+          not a sell list.
+        </TeachBanner>
+        <div className="card p-1.5">
+          {watchouts ? (
+            watchouts.rows.length ? (
+              watchouts.rows.slice(0, 5).map((r, i) => (
+                <div key={r.row.ticker} className="flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <StockRowItem row={r.row} rank={i + 1} />
+                  </div>
+                  <div className="hidden max-w-[280px] shrink-0 justify-end md:flex">
+                    <FlagChips flags={r.flags} max={2} />
+                  </div>
+                  <div className="shrink-0 pr-3 text-right">
+                    <div className="tnum text-sm font-semibold text-down">
+                      {r.risk_score.toFixed(0)}
+                    </div>
+                    <div className="text-[10px] text-faint">risk</div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="px-3 py-6 text-center text-sm text-faint">
+                Nothing at this budget is carrying the standard risk patterns.
               </div>
             )
           ) : (

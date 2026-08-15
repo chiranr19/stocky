@@ -22,6 +22,7 @@ alternative: just buying VOO.
 | --- | --- |
 | **Pulse** `/` | VOO · VIX · 10-yr yield + market breadth, Entry Radar preview, sector-by-sector **affordable shortlists** ranked by a transparent score, movers, watchlist |
 | **Entry Radar** `/radar` | Affordable stocks in a **pullback**, ranked by a transparent entry score (depth · trend · RSI · quality) and **validated against each stock's own history**: N similar past dips → median next-month move, win rate, worst case. Setups to study — never buy signals |
+| **Watch-outs** `/watchouts` | The mirror of the Radar: stocks carrying **named hazards** — falling knives, value traps, names that paid you in volatility instead of returns — ranked by severity, each chip explaining what the pattern means and how vets treat it. A teaching list, not a sell list |
 | **Explore** `/explore` | Risk-vs-reward scatter (all 500 names), scanners (gainers/losers/volume/52-week highs·lows/gaps), golden/death crosses, RSI extremes |
 | **Compare** `/compare` | Up to 3 tickers vs VOO: normalized growth, stats, correlation matrix, return distributions |
 | **Deep dive** `/stock/…` | Candlesticks + MA50/200 + volume + RSI, score breakdown, fundamentals, distribution vs VOO |
@@ -34,6 +35,14 @@ was). The **Stocky score** (Momentum 40 · Stability 30 · Resilience 20 ·
 Liquidity 10) is fully transparent — a starting point for learning, never a
 recommendation. A freshness badge proves how current the data is against the
 NYSE calendar.
+
+**Good picks *and* bad picks.** Seeing why a setup is bad is what makes the good
+ones legible, so the same engine names both: strengths (trend intact,
+constructive pullback, calm compounder) and hazards (falling knife, value trap,
+paid-in-volatility, overextended, thinly traded). Every stock page shows both
+columns; the dashboard puts the Entry Radar and the Watch-outs list back to
+back. Risk flags follow a stock everywhere — a high entry score can never hide a
+hazard.
 
 **The reading layer** answers the question a beginner actually has in front of a
 chart — *the line is going up, is that good or is that risky?* Every stock page

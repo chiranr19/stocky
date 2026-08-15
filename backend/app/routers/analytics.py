@@ -15,6 +15,7 @@ from ..models import (
     SectorsResponse,
     SignalsResponse,
     StockRow,
+    WatchoutsResponse,
 )
 from ..services import analytics, radar
 
@@ -70,6 +71,15 @@ def entry_radar(
 ) -> RadarResponse:
     """Pullback setups ranked by entry score, with historical echo stats."""
     return radar.build_radar(resolve_budget(budget), lookback, limit)
+
+
+@router.get("/watchouts", response_model=WatchoutsResponse)
+def watchouts(
+    budget: float | None = Query(None, description="Max share price; ≤0 = no cap."),
+    limit: int = Query(30, ge=1, le=100),
+) -> WatchoutsResponse:
+    """Stocks carrying the heaviest named risk patterns — the bad-setup showcase."""
+    return analytics.build_watchouts(resolve_budget(budget), limit)
 
 
 @router.get("/compare", response_model=CompareResponse)

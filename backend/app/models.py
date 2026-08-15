@@ -262,6 +262,34 @@ class EchoStats(BaseModel):
     min_depth_pct: float = 0.0
     bucket_lo: float = 0.0
     bucket_hi: float = 0.0
+    n_years: int = Field(default=0, description="Distinct calendar years the episodes span.")
+    confidence: str = Field(
+        default="low",
+        description="high | medium | low — sample size AND spread across market regimes.",
+    )
+
+
+class RiskFlag(BaseModel):
+    """A named pattern that makes a setup good or bad, with the reasoning."""
+
+    code: str
+    label: str
+    kind: str = Field(description="risk | strength")
+    severity: str = Field(description="high | medium | low")
+    why: str
+    what_vets_do: str
+
+
+class WatchoutRow(BaseModel):
+    row: StockRow
+    risk_score: float = Field(description="Weighted severity of risk flags; higher = poorer setup.")
+    flags: list[RiskFlag]
+
+
+class WatchoutsResponse(BaseModel):
+    as_of: date
+    budget: float | None
+    rows: list[WatchoutRow]
 
 
 class RadarRow(BaseModel):
@@ -274,6 +302,7 @@ class RadarRow(BaseModel):
     entry_score: float
     entry_factors: dict[str, float]  # depth, trend, rsi, quality (0-100)
     echo: EchoStats | None = None  # None = not enough similar history
+    flags: list[RiskFlag] = []  # risks visible even on a good-looking setup
 
 
 class RadarResponse(BaseModel):
@@ -344,6 +373,8 @@ class StockDetail(BaseModel):
     benchmark_histogram: dict
     entry: RadarRow | None = None  # Entry Radar position (3M lookback)
     readings: list[Reading] = []  # how to read this stock's current chart
+    flags: list[RiskFlag] = []  # named risk/strength patterns
+    risk_score: float = 0.0
 
 
 class Fundamentals(BaseModel):

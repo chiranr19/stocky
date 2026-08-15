@@ -26,8 +26,9 @@ from ..config import (
     sector_of,
 )
 from ..models import EchoStats as EchoStatsModel
-from ..models import RadarResponse, RadarRow
+from ..models import RadarResponse, RadarRow, RiskFlag
 from . import analytics
+from . import flags as flags_service
 from .metrics import (
     StockMetrics,
     depth_bucket,
@@ -114,6 +115,8 @@ def _analyze_one(
                 min_depth_pct=stats.min_depth_pct,
                 bucket_lo=bucket[0],
                 bucket_hi=bucket[1],
+                n_years=stats.n_years,
+                confidence=stats.confidence,
             )
     return today_depth, depth_rank, echo
 
@@ -150,6 +153,9 @@ def _build(budget: float | None, lookback: str, limit: int) -> RadarResponse:
             "quality": round(quality_pcts[i], 1),
         }
         score = sum(RADAR_WEIGHTS[k] * v for k, v in factors.items())
+        # Surface the risks even on a high-scoring setup — a good score must
+        # never hide a hazard the flags engine can name.
+        risks = [f for f in flags_service.evaluate(m, depth_pct) if f.kind == "risk"]
         rows.append(
             RadarRow(
                 row=analytics.to_row(m),
@@ -159,6 +165,7 @@ def _build(budget: float | None, lookback: str, limit: int) -> RadarResponse:
                 entry_score=round(score, 1),
                 entry_factors=factors,
                 echo=echo,
+                flags=[RiskFlag(**vars(f)) for f in risks],
             )
         )
 

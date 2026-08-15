@@ -204,6 +204,29 @@ export interface EchoStats {
   min_depth_pct?: number;
   bucket_lo?: number;
   bucket_hi?: number;
+  n_years?: number;
+  confidence?: "high" | "medium" | "low";
+}
+
+export interface RiskFlag {
+  code: string;
+  label: string;
+  kind: "risk" | "strength";
+  severity: "high" | "medium" | "low";
+  why: string;
+  what_vets_do: string;
+}
+
+export interface WatchoutRow {
+  row: StockRow;
+  risk_score: number;
+  flags: RiskFlag[];
+}
+
+export interface WatchoutsResponse {
+  as_of: string;
+  budget: number | null;
+  rows: WatchoutRow[];
 }
 
 export interface Reading {
@@ -221,6 +244,7 @@ export interface RadarRow {
   entry_score: number;
   entry_factors: Record<string, number>;
   echo: EchoStats | null;
+  flags: RiskFlag[];
 }
 export interface RadarResponse {
   as_of: string;
@@ -290,6 +314,8 @@ export interface StockDetail {
   benchmark_histogram: Histogram;
   entry: RadarRow | null;
   readings: Reading[];
+  flags: RiskFlag[];
+  risk_score: number;
 }
 export interface Fundamentals {
   ticker: string;
