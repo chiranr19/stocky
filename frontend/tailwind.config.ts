@@ -13,7 +13,10 @@ const config: Config = {
         hair: "rgba(255,255,255,0.07)",
         ink: "#E7E9EC",
         muted: "#8B929C",
-        faint: "#5A616B",
+        // Quietest text that still passes AA at small sizes on the panels
+        // (#5A616B measured ~3.0:1 — illegible at 10px on a phone; this is
+        // ~4.9:1 while staying a clear step below `muted`).
+        faint: "#7A8290",
         up: "#22C989",
         down: "#F6465D",
         accent: "#7C6BFF",
@@ -32,9 +35,19 @@ const config: Config = {
           from: { opacity: "0", transform: "translateY(4px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        "grow-bar": {
+          from: { transform: "scaleX(0)" },
+          to: { transform: "scaleX(1)" },
+        },
+        "pop-in": {
+          from: { opacity: "0", transform: "scale(0.6)" },
+          to: { opacity: "1", transform: "scale(1)" },
+        },
       },
       animation: {
         "fade-in": "fade-in 0.4s ease-out both",
+        "grow-bar": "grow-bar 0.5s ease-out both",
+        "pop-in": "pop-in 0.25s ease-out both",
       },
     },
   },

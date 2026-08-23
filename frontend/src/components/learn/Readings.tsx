@@ -49,6 +49,12 @@ function ReadingItem({ r, defaultOpen = false }: { r: Reading; defaultOpen?: boo
       </button>
       {open && (
         <div className="space-y-2 px-3 pb-3 pl-[38px] text-xs leading-relaxed">
+          {r.analogy && (
+            <p className="rounded-lg border border-accent/20 bg-accent/5 px-2.5 py-1.5 italic text-ink/90">
+              <span className="mr-1 font-medium not-italic text-accent">Think of it like:</span>
+              {r.analogy}
+            </p>
+          )}
           <p className="text-muted">{r.detail}</p>
           <p className="text-faint">
             <span className="font-medium text-muted">When this reading lies to you: </span>

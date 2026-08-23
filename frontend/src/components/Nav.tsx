@@ -5,12 +5,16 @@ import { usePathname } from "next/navigation";
 import { Command as CommandIcon } from "lucide-react";
 import { useHealth } from "@/lib/useHealth";
 import { BudgetControl } from "./BudgetControl";
+import { LensControl } from "./LensControl";
 import { FreshnessBadge } from "./FreshnessBadge";
 
 const LINKS = [
   { href: "/", label: "Pulse" },
+  { href: "/watchlist", label: "Watchlist" },
+  { href: "/learn", label: "Learn" },
   { href: "/radar", label: "Radar" },
   { href: "/watchouts", label: "Watch-outs" },
+  { href: "/filers", label: "Filers" },
   { href: "/explore", label: "Explore" },
   { href: "/compare", label: "Compare" },
   { href: "/time-machine", label: "Time Machine" },
@@ -56,6 +60,7 @@ export function Nav() {
 
           <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
             <BudgetControl />
+            <LensControl />
             <FreshnessBadge health={health} />
             <button
               onClick={() =>

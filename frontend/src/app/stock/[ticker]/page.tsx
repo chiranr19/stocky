@@ -3,11 +3,14 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Clock, Crosshair, TrendingDown, TrendingUp } from "lucide-react";
-import { getStock } from "@/lib/api";
-import type { StockDetail } from "@/lib/types";
+import { ArrowLeft, ArrowRight, Clock, Crosshair, GraduationCap, TrendingDown, TrendingUp } from "lucide-react";
+import { getLearnBasket, getStock } from "@/lib/api";
+import type { BasketMember, StockDetail } from "@/lib/types";
 import { fmtCompact, fmtCurrency, fmtPct, toneClass } from "@/lib/format";
-import { ChangePct, RangeBar, ScoreBadge, StatTile } from "@/components/ui/primitives";
+import { ChangePct, RangeBar, ScoreBadge, SectionHeader, StatTile } from "@/components/ui/primitives";
+import { ConePanel } from "@/components/study/ConePanel";
+import { StudyLede } from "@/components/study/StudyLede";
+import { STUDY } from "@/lib/studyCopy";
 import { Term } from "@/components/ui/Term";
 import { ErrorCard, Loading } from "@/components/ui/States";
 import { CandleChart } from "@/components/stock/CandleChart";
@@ -29,13 +32,20 @@ export default function StockPage() {
   const params = useParams();
   const ticker = String(params.ticker || "").toUpperCase();
   const [data, setData] = useState<StockDetail | null>(null);
+  const [role, setRole] = useState<BasketMember | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!ticker) return;
     setData(null);
     setError(null);
+    setRole(null);
     getStock(ticker).then(setData).catch((e) => setError(e.message));
+    // Curated watchlist role, if this ticker is one of the cast (cached fetch,
+    // shared with /learn). A miss is silent — most tickers aren't on the list.
+    getLearnBasket()
+      .then((b) => setRole(b.members.find((m) => m.ticker === ticker && m.role_story) ?? null))
+      .catch(() => setRole(null));
   }, [ticker]);
 
   if (error) return <ErrorCard message={error} />;
@@ -147,6 +157,33 @@ export default function StockPage() {
         )}
       </div>
 
+      {/* Its role in your watchlist — the curated teaching story */}
+      {role && (
+        <div className="card overflow-hidden p-4">
+          <div className="mb-1.5 flex items-center gap-2">
+            <GraduationCap className="h-4 w-4 text-accent" />
+            <h3 className="text-sm font-semibold tracking-tight">Its role in your watchlist</h3>
+            <span className="rounded-md border border-accent/30 bg-accent/10 px-1.5 py-0.5 text-[11px] font-medium text-accent">
+              {role.role}
+            </span>
+          </div>
+          <p className="text-sm leading-relaxed text-muted">{role.role_story}</p>
+          {role.role_lesson && (
+            <p className="mt-2 border-t border-hair pt-2 text-xs leading-relaxed text-ink/80">
+              <span className="font-medium text-accent">The lesson: </span>
+              {role.role_lesson}
+            </p>
+          )}
+          <p className="mt-2 text-[11px] text-faint">
+            A hand-written story to build intuition — the numbers inside it are frozen to
+            when it was written; the live figures above are current.{" "}
+            <Link href="/learn" className="text-muted underline-offset-2 hover:text-accent hover:underline">
+              See the whole cast →
+            </Link>
+          </p>
+        </div>
+      )}
+
       {/* The reading layer — what this chart actually means */}
       <Readings
         readings={data.readings}
@@ -160,6 +197,13 @@ export default function StockPage() {
       {/* Candles + RSI */}
       <CandleChart candles={data.candles} ma50={data.ma50} ma200={data.ma200} />
       <RsiPanel rsi={data.rsi} />
+
+      {/* The honest forecast — a cone of plausible futures from its own past moves */}
+      <section>
+        <SectionHeader title={STUDY.cone.eyebrow} termKey="volatility" sub="a range of futures, never a call" />
+        <StudyLede copy={STUDY.cone} />
+        <ConePanel ticker={data.ticker} />
+      </section>
 
       {/* Score breakdown + fundamentals */}
       <div className="grid gap-3 lg:grid-cols-[1.3fr_1fr]">

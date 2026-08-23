@@ -139,6 +139,48 @@ def test_every_flag_explains_itself():
             assert match is None, f"advice phrasing in {f.code}: {match.group(0)!r}"
 
 
+def test_glossary_stays_in_sync_with_the_flags_the_engine_can_emit():
+    """Every code evaluate() can produce has a legend entry, and vice versa —
+    the digest's 'Flags explained' section must never meet an unknown code."""
+    import inspect
+    import re as _re
+
+    from app.services import flags as flags_module
+
+    emitted = set(_re.findall(r'code="(\w+)"', inspect.getsource(flags_module)))
+    assert emitted == set(flags_module.GLOSSARY)
+
+    for code, g in flags_module.GLOSSARY.items():
+        assert g["kind"] in ("risk", "strength"), code
+        for key in ("label", "meaning", "vets", "analogy"):
+            assert g[key].strip(), f"{code}.{key} is empty"
+        blob = f"{g['label']} {g['meaning']} {g['vets']} {g['analogy']}"
+        match = FORBIDDEN.search(blob)
+        assert match is None, f"advice-like phrasing in glossary {code}: {match.group(0)!r}"
+        assert "median" not in blob.lower(), f"the word 'median' leaked into glossary {code}"
+
+
+def test_flag_analogy_helper_covers_every_code():
+    """Every legend entry has a metaphor; an unknown code yields the empty string."""
+    from app.services import flags as flags_module
+
+    for code in flags_module.GLOSSARY:
+        assert flags_module.flag_analogy(code).strip(), f"{code} has no analogy"
+    assert flags_module.flag_analogy("not_a_real_code") == ""
+
+
+def test_api_conversion_attaches_the_analogy():
+    """Regression against the v0.5 'computed then silently dropped' failure: the
+    pydantic RiskFlag must carry the metaphor the engine looked up by code."""
+    from app.models import RiskFlag
+    from app.services.flags import flag_analogy
+
+    f = evaluate(_m(above_ma200=False, above_ma50=False, ret_3m=-30.0), depth_pct=25.0)[0]
+    rf = RiskFlag(**vars(f), analogy=flag_analogy(f.code))
+    assert rf.analogy == flag_analogy(f.code)
+    assert rf.analogy.strip()
+
+
 @pytest.mark.parametrize("depth", [None, 0.0, 5.0, 50.0])
 def test_missing_or_extreme_depth_never_crashes(depth):
     assert isinstance(evaluate(_m(), depth), list)

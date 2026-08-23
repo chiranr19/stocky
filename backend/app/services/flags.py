@@ -338,6 +338,162 @@ def _strength_flags(m: StockMetrics, depth_pct: float | None) -> list[Flag]:
 
 
 # --------------------------------------------------------------------------- #
+# Glossary — the generic pattern behind each flag code, for legends/digests.
+# Instance flags carry stock-specific numbers in ``why``; this carries the
+# pattern itself. test_flags keeps it in sync with what evaluate() can emit.
+# --------------------------------------------------------------------------- #
+GLOSSARY: dict[str, dict[str, str]] = {
+    "falling_knife": {
+        "label": "Falling knife",
+        "kind": "risk",
+        "meaning": "A steep decline that is still in progress: well below the 200-day "
+                   "average and down hard over recent months. The trend is broken, not "
+                   "dipping — cheap has been getting cheaper.",
+        "vets": "Wait for the price to reclaim the 200-day average before studying it "
+                "as a setup; missing the exact bottom costs less than catching the knife.",
+        "analogy": "A kitchen knife slipping off the counter: the safe move is to let it "
+                   "hit the floor — the 200-day line — and pick it up afterward. Costs a "
+                   "second of lateness, spares the fingers.",
+    },
+    "broken_trend": {
+        "label": "Trend broken",
+        "kind": "risk",
+        "meaning": "Price below its 200-day average — the most-watched line separating "
+                   "an uptrend from a downtrend.",
+        "vets": "Treat everything else about the stock as secondary until this repairs.",
+        "analogy": "A river that's changed direction. Every other feature of the "
+                   "landscape matters less than which way the water is now flowing.",
+    },
+    "value_trap": {
+        "label": "Possible value trap",
+        "kind": "risk",
+        "meaning": "Near the 52-week low with a broken trend and a losing year. 'Cheap' "
+                   "here reflects a market verdict, not a discount.",
+        "vets": "Demand a reason the business is turning before the chart does.",
+        "analogy": "The cheap hotel room with the great price and the smell you find out "
+                   "about later. The low number is the market's verdict, not a coupon.",
+    },
+    "volatility_trap": {
+        "label": "Paid in volatility, not returns",
+        "kind": "risk",
+        "meaning": "High volatility paired with a negative year — a wild ride that went "
+                   "nowhere. The worst quadrant of the risk-vs-reward map.",
+        "vets": "Compare it against simply owning the index before spending attention on it.",
+        "analogy": "A rollercoaster that unloads you lower than it picked you up: all the "
+                   "screaming, none of the view.",
+    },
+    "very_high_volatility": {
+        "label": "Very high volatility",
+        "kind": "risk",
+        "meaning": "Swings large enough that position size matters more than the pick.",
+        "vets": "Size the position so a bad week is survivable.",
+        "analogy": "A chainsaw versus a butter knife: it can do far more in either "
+                   "direction, so how you hold it matters more than which one it is.",
+    },
+    "overextended": {
+        "label": "Overextended",
+        "kind": "risk",
+        "meaning": "Hot RSI at the very top of the 52-week range — entries here are "
+                   "expensive and pullbacks from here are sharp.",
+        "vets": "Let it cool rather than chase; strong stocks give better entries to "
+                "the patient.",
+        "analogy": "A sprinter at full stretch leaning past the tape. Impressive — and "
+                   "about to need a breather.",
+    },
+    "death_cross": {
+        "label": "Recent death cross",
+        "kind": "risk",
+        "meaning": "The 50-day average crossed below the 200-day — a widely watched "
+                   "confirmation that momentum turned down. It lags badly.",
+        "vets": "Note it, but never act on it alone; it has a reputation for firing "
+                "near bottoms.",
+        "analogy": "A weather app that finally says 'rain' as the clouds are breaking. "
+                   "Real, but late enough to be nearly useless on its own.",
+    },
+    "severe_drawdown": {
+        "label": "Severe drawdown within the year",
+        "kind": "risk",
+        "meaning": "The stock already demonstrated it can fall 40%+ inside twelve "
+                   "months — that is the ride on offer.",
+        "vets": "Ask honestly whether they'd have held through it.",
+        "analogy": "A theme-park ride with a warning sign it has already earned. The "
+                   "sign is describing a drop it really did take, not a hypothetical one.",
+    },
+    "thin_liquidity": {
+        "label": "Thinly traded",
+        "kind": "risk",
+        "meaning": "Low dollar volume: wider spreads, and larger orders move the price "
+                   "against you.",
+        "vets": "Stick to liquid names while learning — getting out stays the easy part.",
+        "analogy": "A tiny exit door in a crowded room. Fine until everyone wants out at "
+                   "once — then the doorway itself becomes the problem.",
+    },
+    "trend_intact": {
+        "label": "Trend intact",
+        "kind": "strength",
+        "meaning": "Above both the 50- and 200-day averages — the textbook uptrend, and "
+                   "the condition under which most technical patterns actually work.",
+        "vets": "Treat it as the entry ticket for studying a setup at all.",
+        "analogy": "A swimmer moving with the current, not against it. Everything else in "
+                   "the water is easier when the flow is already on your side.",
+    },
+    "constructive_pullback": {
+        "label": "Pullback in an uptrend",
+        "kind": "strength",
+        "meaning": "Meaningfully below its recent high while the long trend still holds "
+                   "— a discount without a broken chart.",
+        "vets": "This is the shape veterans shop in, checked against the stock's own "
+                "history of similar dips.",
+        "analogy": "A well-run shop with a sale on: still busy, still stocked, just "
+                   "cheaper this week than last.",
+    },
+    "calm_compounder": {
+        "label": "Calm and positive",
+        "kind": "strength",
+        "meaning": "A positive year delivered with low volatility — return without a "
+                   "punishing ride.",
+        "vets": "Value the smooth ride; the easiest portfolio to hold is the one you keep.",
+        "analogy": "A dependable commuter train — not thrilling, rarely late, and the "
+                   "ride you actually keep taking.",
+    },
+    "shallow_drawdown": {
+        "label": "Shallow worst drop",
+        "kind": "strength",
+        "meaning": "Its deepest fall in the past year stayed modest — it has held "
+                   "together under pressure.",
+        "vets": "Read it as resilience, remembering one calm year proves nothing about "
+                "the next.",
+        "analogy": "A boat that stayed steady through last year's roughest patch. "
+                   "Reassuring — though last year's storms don't set next year's ceiling.",
+    },
+    "deep_liquidity": {
+        "label": "Highly liquid",
+        "kind": "strength",
+        "meaning": "Heavy dollar volume: tight spreads, easy entry and exit at the "
+                   "quoted price.",
+        "vets": "Prefer it, especially for anything held in size.",
+        "analogy": "A wide, well-lit doorway: you can walk in or out at the marked price "
+                   "without a scramble.",
+    },
+    "golden_cross": {
+        "label": "Recent golden cross",
+        "kind": "strength",
+        "meaning": "The 50-day average crossed above the 200-day — a widely watched "
+                   "trend confirmation that can attract buyers on its own. It lags.",
+        "vets": "Take it as confirmation of a trend already identified, never as the "
+                "reason by itself.",
+        "analogy": "A weather app turning sunny after you already felt the warmth. Nice "
+                   "confirmation — just don't mistake it for the forecast.",
+    },
+}
+
+
+def flag_analogy(flag_code: str) -> str:
+    """Everyday-life picture of a pattern, for UI popovers and the digest legend."""
+    return GLOSSARY.get(flag_code, {}).get("analogy", "")
+
+
+# --------------------------------------------------------------------------- #
 # Public API
 # --------------------------------------------------------------------------- #
 def evaluate(m: StockMetrics, depth_pct: float | None = None) -> list[Flag]:

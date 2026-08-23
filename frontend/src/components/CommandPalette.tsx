@@ -9,8 +9,10 @@ import {
   Clock,
   Crosshair,
   GitCompare,
+  GraduationCap,
   Search,
   ShieldAlert,
+  Star,
   TrendingUp,
 } from "lucide-react";
 import { getUniverse } from "@/lib/api";
@@ -18,6 +20,8 @@ import type { UniverseItem } from "@/lib/types";
 
 const PAGES = [
   { label: "Pulse — market overview", href: "/", icon: BarChart3 },
+  { label: "Watchlist — your living cast", href: "/watchlist", icon: Star },
+  { label: "Learn — the market, told as stories", href: "/learn", icon: GraduationCap },
   { label: "Entry Radar — pullback setups", href: "/radar", icon: Crosshair },
   { label: "Watch-outs — what a bad setup looks like", href: "/watchouts", icon: ShieldAlert },
   { label: "Explore — scanners, risk map, signals", href: "/explore", icon: TrendingUp },

@@ -10,7 +10,7 @@ from ..config import (
     BIG_MOVER_PCT,
     SECTORS,
     UNUSUAL_VOLUME_RATIO,
-    WATCHLIST,
+    WATCHLIST_ROLES,
     display_name,
     settings,
 )
@@ -58,6 +58,18 @@ def build_card(ticker: str, df: pd.DataFrame) -> WatchlistCard:
 
     sparkline = [round(float(x), 2) for x in close.tail(_SPARKLINE_POINTS)]
 
+    # Curated role wins; otherwise derive an archetype from the numbers so a
+    # user-added card gets a character instead of a blank chip.
+    curated = WATCHLIST_ROLES.get(ticker)
+    if curated is not None:
+        role = {"role": curated["role"], "story": curated["story"], "lesson": curated["lesson"]}
+    else:
+        from . import archetypes
+        from .metrics import compute_metrics
+
+        m = compute_metrics(ticker, df)
+        role = archetypes.assign(m, len(df)) if m is not None else None
+
     return WatchlistCard(
         ticker=ticker,
         name=display_name(ticker),
@@ -73,6 +85,9 @@ def build_card(ticker: str, df: pd.DataFrame) -> WatchlistCard:
         unusual_volume=volume_ratio >= UNUSUAL_VOLUME_RATIO,
         big_mover=abs(change_pct) >= BIG_MOVER_PCT,
         sparkline=sparkline,
+        role=role["role"] if role else None,
+        role_story=role["story"] if role else None,
+        role_lesson=role["lesson"] if role else None,
     )
 
 
@@ -101,10 +116,13 @@ def build_pulse() -> PulseResponse:
 
     tiles = build_sector_tiles(today)
 
-    histories = market.get_histories(WATCHLIST, today - _WATCHLIST_LOOKBACK, today)
+    from . import watchlist as watchlist_service
+
+    watch = watchlist_service.tickers()
+    histories = market.get_histories(watch, today - _WATCHLIST_LOOKBACK, today)
     cards: list[WatchlistCard] = []
     as_of = today
-    for ticker in WATCHLIST:
+    for ticker in watch:
         df = histories.get(ticker)
         if df is None or df.empty:
             continue

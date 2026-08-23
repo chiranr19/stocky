@@ -8,6 +8,8 @@ import type { RadarResponse } from "@/lib/types";
 import { fmtDate } from "@/lib/format";
 import { SectionHeader } from "@/components/ui/primitives";
 import { TeachBanner } from "@/components/learn/TeachBanner";
+import { PageLesson } from "@/components/learn/PageLesson";
+import { PAGE_LESSONS } from "@/lib/pageLessons";
 import { Term } from "@/components/ui/Term";
 import { WarmingNotice, Loading } from "@/components/ui/States";
 import { MethodCard, RadarRowItem } from "@/components/radar/RadarList";
@@ -44,6 +46,8 @@ export default function RadarPage() {
           validated against their own history{data ? ` · as of ${fmtDate(data.as_of)}` : ""}.
         </p>
       </div>
+
+      <PageLesson {...PAGE_LESSONS.radar} />
 
       <WarmingNotice />
 

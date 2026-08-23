@@ -19,6 +19,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 from build_digest import build_html, build_text  # noqa: E402
 
 from app.models import (  # noqa: E402
+    BasketMember,
+    BasketResponse,
     BreadthStats,
     CalendarResponse,
     EchoStats,
@@ -30,6 +32,7 @@ from app.models import (  # noqa: E402
     Reading,
     RiskFlag,
     StockRow,
+    WatchEvent,
     WatchoutRow,
     WatchoutsResponse,
 )
@@ -85,7 +88,9 @@ def _fixtures():
                 entry_factors={"depth": 82.0, "trend": 100.0, "rsi": 55.0, "quality": 61.0},
                 echo=EchoStats(n=9, median_fwd_pct=3.4, win_rate=0.667, worst_pct=-8.2,
                                best_pct=14.1, kind="exact", min_depth_pct=10.0,
-                               bucket_lo=10.0, bucket_hi=15.0, n_years=4, confidence="high"),
+                               bucket_lo=10.0, bucket_hi=15.0, n_years=4, confidence="high",
+                               p25_pct=-1.1, p75_pct=6.8, n_benchmarked=9,
+                               beat_benchmark=6, median_excess_pct=1.8),
                 flags=[],
             ),
             RadarRow(
@@ -229,6 +234,54 @@ def test_upcoming_events_are_not_windowed_to_one_week():
         assert "CPI release" in out  # 25 days out — would have been cut by a week window
 
 
+def test_echo_shows_outcome_spread_and_voo_benchmark(digest):
+    """Better math on the featured pick: quartile range, win count, and the
+    same windows measured on VOO — a bounce means little if the index matched it."""
+    html, txt = digest
+    for out in (html, txt):
+        assert "-1.10%" in out and "+6.80%" in out   # p25 / p75
+        assert "6 of 9" in out                        # beat VOO count, win count
+        assert "VOO" in out
+        assert "+1.80%" in out                        # median edge over VOO
+
+
+def test_sector_spread_lists_the_best_setup_per_sector():
+    o, r, w, g, l, c = _fixtures()
+    hc = RadarRow(
+        row=StockRow(
+            ticker="HHHH", name="HHHH Inc", sector="Health Care", price=77.0,
+            change_pct=-0.5, spark=[80.0, 78.0, 77.0], range_52w_position=0.4,
+            avg_dollar_volume=2e8, above_ma50=False, above_ma200=True, rsi14=38.0,
+            vol_90d=22.0, ret_1m=-3.0, ret_3m=-6.0, ret_1y=12.0,
+            max_drawdown_1y=-18.0, volume_ratio=1.0, gap_pct=0.0,
+            cross=None, cross_date=None, rsi_signal=None,
+        ),
+        depth_pct=9.0, depth_rank=70.0, falling_knife=False, entry_score=66.0,
+        entry_factors={"depth": 70.0, "trend": 100.0, "rsi": 60.0, "quality": 50.0},
+        echo=None, flags=[],
+    )
+    sector_best = [r.rows[0], hc]
+    html = build_html(o, r, w, g, l, c, sector_best=sector_best)
+    txt = build_text(o, r, w, g, l, c, sector_best=sector_best)
+    for out in (html, txt):
+        assert "Across the sectors" in out
+        assert "Information Technology" in out
+        assert "Health Care" in out and "HHHH" in out
+
+
+def test_flags_glossary_explains_every_label_shown(digest):
+    """The legend must cover the flags actually used — and only those."""
+    html, txt = digest
+    for out in (html, txt):
+        assert "Flags explained" in out or "FLAGS EXPLAINED" in out
+        # BBBB carries broken_trend; CCCC carries falling_knife + value_trap.
+        assert "most-watched line separating" in out       # broken_trend meaning
+        assert "market verdict, not a discount" in out     # value_trap meaning
+        assert "cheap has been getting cheaper" in out     # falling_knife meaning
+        # golden_cross appears nowhere in the fixtures — no orphan legend rows.
+        assert "Recent golden cross" not in out
+
+
 def test_empty_inputs_do_not_crash():
     """A market holiday or a thin day must degrade, not explode."""
     o, r, w, g, l, c = _fixtures()
@@ -241,3 +294,156 @@ def test_empty_inputs_do_not_crash():
     html = build_html(o, empty_radar, empty_watch, [], [], empty_cal)
     txt = build_text(o, empty_radar, empty_watch, [], [], empty_cal)
     assert "At a glance" in html and "AT A GLANCE" in txt
+
+
+# --------------------------------------------------------------------------- #
+# v0.8 — metaphor analogies + the watchlist "cast" section
+# --------------------------------------------------------------------------- #
+def _basket(events=None) -> BasketResponse:
+    def _member(ticker, group, role, **over):
+        base = dict(
+            ticker=ticker, name=f"{ticker} Inc", role=role, group=group,
+            role_story="A short curated story.", role_lesson="The transferable law.",
+            spark=[1.0, 2.0], series_1y=[1.0, 2.0], flag_codes=[], measurable=True,
+        )
+        base.update(over)
+        return BasketMember(**base)
+
+    members = [
+        _member("AAAA", "mega", "The anchor tenant", price=123.45, change_pct=-1.2,
+                vol_90d=30.0, ret_1y=15.0, above_ma200=True),
+        _member("FE", "umbrella", "One of four umbrellas", price=45.0, change_pct=-2.5),
+        _member("AEP", "umbrella", "One of four umbrellas", price=120.0, change_pct=-1.0),
+        _member("DTE", "umbrella", "One of four umbrellas", price=135.0, change_pct=-0.8),
+        _member("XE", "wildcard", "The lottery ticket", measurable=False),
+    ]
+    correlation = {
+        "labels": ["FE", "AEP", "DTE"],
+        "matrix": [[1.0, 0.73, 0.61], [0.73, 1.0, 0.88], [0.61, 0.88, 1.0]],
+    }
+    return BasketResponse(
+        as_of=AS_OF, roles_as_of="2026-08-21",
+        laws=["Ceiling and floor travel together.", "Always ask what VOO did."],
+        members=members, correlation=correlation, correlation_note="",
+        benchmark_ticker="VOO", events=events or [],
+    )
+
+
+def _events():
+    return [
+        WatchEvent(ticker="DTE", name="DTE Inc", code="ma200_break", tone="caution", severity=5,
+                   headline="DTE crossed below its 200-day: its dip just became a verdict.",
+                   detail="The long average gave way at 135.00."),
+        WatchEvent(ticker="AAAA", name="AAAA Inc", code="big_move", tone="constructive", severity=2,
+                   headline="AAAA moved +5.1% today.", detail="A move this size usually means news."),
+    ]
+
+
+def test_watchlist_events_render_since_yesterday_block():
+    o, r, w, g, l, c = _fixtures()
+    b = _basket(events=_events())
+    html = build_html(o, r, w, g, l, c, basket=b)
+    txt = build_text(o, r, w, g, l, c, basket=b)
+    for out in (html, txt):
+        assert "Since yesterday on your watchlist" in out
+        assert "its dip just became a verdict" in out          # headline verbatim
+        assert "The long average gave way at 135.00." in out   # detail verbatim
+
+
+def test_events_block_absent_when_no_events():
+    o, r, w, g, l, c = _fixtures()
+    for b in (_basket(events=[]), None):
+        html = build_html(o, r, w, g, l, c, basket=b)
+        txt = build_text(o, r, w, g, l, c, basket=b)
+        assert "Since yesterday on your watchlist" not in html
+        assert "Since yesterday on your watchlist" not in txt
+
+
+def test_events_block_is_capped_and_law_abiding():
+    o, r, w, g, l, c = _fixtures()
+    many = [
+        WatchEvent(ticker=f"T{i}", name=f"T{i}", code="big_move", tone="neutral", severity=2,
+                   headline=f"T{i} moved +4.0% today.", detail="A move this size usually means news.")
+        for i in range(10)
+    ]
+    txt = build_text(o, r, w, g, l, c, basket=_basket(events=many))
+    assert txt.count("moved +4.0% today") <= 6            # capped at 6 lines
+    html = build_html(o, r, w, g, l, c, basket=_basket(events=many))
+    assert FORBIDDEN.search(txt) is None and FORBIDDEN.search(html) is None
+    assert txt.count("median") <= 2
+    assert "http://" not in html
+
+
+def test_reading_analogies_render_in_both_formats():
+    o, r, w, g, l, c = _fixtures()
+    o = o.model_copy(update={"readings": [
+        Reading(aspect="vix", headline="VIX 14.2 — calm", detail="d", tone="constructive",
+                caveat="cv", analogy="Umbrella insurance is cheapest on a sunny day."),
+    ]})
+    html = build_html(o, r, w, g, l, c)
+    txt = build_text(o, r, w, g, l, c)
+    for out in (html, txt):
+        assert "Think of it like" in out
+        assert "Umbrella insurance is cheapest on a sunny day." in out
+
+
+def test_flags_legend_carries_analogies(digest):
+    """Each explained flag now shows its everyday-life picture."""
+    html, txt = digest
+    for out in (html, txt):
+        assert "Think of it like" in out
+        # falling_knife is in play (CCCC) → its GLOSSARY analogy must appear.
+        assert "kitchen knife slipping off the counter" in out
+
+
+def test_watchlist_cast_lists_every_member_with_role():
+    o, r, w, g, l, c = _fixtures()
+    b = _basket()
+    html = build_html(o, r, w, g, l, c, sector_best=None, basket=b)
+    txt = build_text(o, r, w, g, l, c, sector_best=None, basket=b)
+    for out in (html, txt):
+        assert "the cast" in out
+        for m in b.members:
+            assert m.ticker in out
+            assert m.role in out
+        # The unmeasurable member is labeled, not invented.
+        assert "too little history to measure" in out
+
+
+def test_watchlist_correlation_callout_traces_to_input():
+    o, r, w, g, l, c = _fixtures()
+    b = _basket()  # umbrella off-diagonals: 0.61, 0.73, 0.88 → min-max 0.61-0.88
+    for out in (build_html(o, r, w, g, l, c, basket=b), build_text(o, r, w, g, l, c, basket=b)):
+        assert "0.61-0.88" in out
+
+
+def test_law_of_the_day_is_deterministic_for_the_date():
+    o, r, w, g, l, c = _fixtures()
+    b = _basket()
+    expected = b.laws[AS_OF.toordinal() % len(b.laws)]
+    for out in (build_html(o, r, w, g, l, c, basket=b), build_text(o, r, w, g, l, c, basket=b)):
+        assert expected in out
+
+
+def test_cast_section_adds_no_new_median_language():
+    """Belt-and-braces: the 'median' budget survives with a basket attached."""
+    o, r, w, g, l, c = _fixtures()
+    txt = build_text(o, r, w, g, l, c, basket=_basket())
+    assert txt.count("median") <= 2
+
+
+def test_digest_with_basket_stays_advice_free_and_email_safe():
+    o, r, w, g, l, c = _fixtures()
+    b = _basket()
+    html = build_html(o, r, w, g, l, c, basket=b)
+    txt = build_text(o, r, w, g, l, c, basket=b)
+    for out in (html, txt):
+        assert FORBIDDEN.search(out) is None
+    assert "<script" not in html.lower()
+    assert "http://" not in html
+
+
+def test_basket_none_skips_the_cast_section():
+    o, r, w, g, l, c = _fixtures()
+    txt = build_text(o, r, w, g, l, c, basket=None)
+    assert "the cast" not in txt

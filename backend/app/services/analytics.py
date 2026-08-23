@@ -66,10 +66,26 @@ _TD_1Y = 252
 # --------------------------------------------------------------------------- #
 # Universe-wide metrics cache
 # --------------------------------------------------------------------------- #
+# "gen" is bumped by invalidate_metrics_cache() so a watchlist edit forces a
+# rebuild even though a new ticker changes neither MAX(date) nor warm.loaded —
+# and, folded into the cache key, it cascades the miss to every derived cache
+# (screen, watchouts, radar, basket, events, filers) that keys off _cache["key"].
 _lock = threading.Lock()
-_cache: dict = {"key": None, "metrics": {}, "latest": None, "closes": {}}
+_cache: dict = {"key": None, "gen": 0, "metrics": {}, "latest": None, "closes": {}}
 _screen_cache: dict = {"key": None, "by_budget": {}}
 _watchouts_cache: dict = {"key": None, "by_params": {}}
+
+
+def invalidate_metrics_cache() -> None:
+    """Force a metrics rebuild on the next read and a new generation key.
+
+    Called when the watchlist changes: the universe grew/shrank but the price
+    data's MAX(date) and warm progress are unchanged, so only the generation
+    counter can tell the caches they are stale.
+    """
+    with _lock:
+        _cache["gen"] += 1
+        _cache["key"] = None
 
 
 def _max_date() -> dt.date | None:
@@ -82,7 +98,7 @@ def _max_date() -> dt.date | None:
 def _load_metrics() -> tuple[dict[str, StockMetrics], dt.date | None, dict[str, pd.Series]]:
     end = dt.date.today()
     start = end - _ANALYSIS_LOOKBACK
-    histories = market.read_cached(market.ALL_TICKERS, start, end)
+    histories = market.read_cached(market.all_tickers(), start, end)
 
     metrics: dict[str, StockMetrics] = {}
     closes: dict[str, pd.Series] = {}
@@ -100,8 +116,11 @@ def _load_metrics() -> tuple[dict[str, StockMetrics], dt.date | None, dict[str, 
 
 
 def universe_metrics() -> tuple[dict[str, StockMetrics], dt.date]:
-    """Memoized per (data date, warm progress); recomputes as warm-up streams in."""
-    key = (_max_date(), market.warm_state().loaded)
+    """Memoized per (data date, warm progress, generation); recomputes as warm-up
+    streams in or the watchlist changes."""
+    with _lock:
+        gen = _cache["gen"]
+    key = (_max_date(), market.warm_state().loaded, gen)
     with _lock:
         if _cache["key"] == key and _cache["metrics"]:
             return _cache["metrics"], _cache["latest"]
@@ -407,7 +426,10 @@ def _build_watchouts(budget: float | None, limit: int) -> WatchoutsResponse:
             WatchoutRow(
                 row=to_row(m),
                 risk_score=score,
-                flags=[RiskFlag(**vars(f)) for f in risks],
+                flags=[
+                    RiskFlag(**vars(f), analogy=flags_service.flag_analogy(f.code))
+                    for f in risks
+                ],
             )
         )
 
@@ -612,6 +634,9 @@ def build_stock_detail(ticker: str) -> StockDetail:
         benchmark_histogram=bench_hist,
         entry=entry,
         readings=readings,
-        flags=[RiskFlag(**vars(f)) for f in found],
+        flags=[
+            RiskFlag(**vars(f), analogy=flags_service.flag_analogy(f.code))
+            for f in found
+        ],
         risk_score=flags_service.risk_score(found),
     )

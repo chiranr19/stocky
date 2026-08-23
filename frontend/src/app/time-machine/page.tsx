@@ -4,6 +4,8 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Term } from "@/components/ui/Term";
 import { TeachBanner } from "@/components/learn/TeachBanner";
+import { PageLesson } from "@/components/learn/PageLesson";
+import { PAGE_LESSONS } from "@/lib/pageLessons";
 import { TimeMachine } from "@/components/timemachine/TimeMachine";
 
 function TimeMachineInner() {
@@ -22,6 +24,7 @@ export default function TimeMachinePage() {
           ride?
         </p>
       </div>
+      <PageLesson {...PAGE_LESSONS.timeMachine} />
       <TeachBanner>
         The number that matters isn&apos;t the return — it&apos;s the{" "}
         <Term k="drawdown">max drawdown</Term>. Great long-run gains are worthless if the

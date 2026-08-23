@@ -109,6 +109,45 @@ def test_echo_stats_known_values():
     assert stats.median_fwd_pct > 0
 
 
+def test_echo_stats_quartiles_and_no_benchmark_defaults():
+    s = _series(list(np.linspace(100, 200, 60)))
+    eps = [s.index[i] for i in (0, 10, 20, 30, 40, 45)]
+    stats = echo_stats(s, eps, horizon=5, min_episodes=6)
+    assert stats.p25_pct is not None and stats.p75_pct is not None
+    assert stats.p25_pct <= stats.median_fwd_pct <= stats.p75_pct
+    # No benchmark passed → no benchmark claims invented.
+    assert stats.n_benchmarked == 0 and stats.beat_benchmark == 0
+    assert stats.median_excess_pct is None
+
+
+def test_echo_stats_benchmark_known_values():
+    # Stock compounds 1%/session, benchmark 0.5%/session over the same dates:
+    # every 5-session window → stock ≈ +5.10%, benchmark ≈ +2.53%, so the stock
+    # is ahead in every episode with a known median edge.
+    idx = pd.bdate_range(start="2023-01-02", periods=60)
+    stock = pd.Series(100.0 * 1.01 ** np.arange(60), index=idx)
+    bench = pd.Series(100.0 * 1.005 ** np.arange(60), index=idx)
+    eps = [idx[i] for i in (0, 10, 20, 30, 40, 45)]
+    stats = echo_stats(stock, eps, horizon=5, min_episodes=6, benchmark=bench)
+    assert stats.n_benchmarked == 6
+    assert stats.beat_benchmark == 6
+    expected_edge = (1.01**5 - 1.005**5) * 100
+    assert stats.median_excess_pct == pytest.approx(expected_edge, abs=0.05)
+    assert stats.p25_pct == pytest.approx(stats.p75_pct, abs=0.01)  # identical windows
+
+
+def test_echo_stats_benchmark_missing_dates_are_not_counted():
+    # Benchmark history ends early → later episodes can't be benchmarked, and
+    # the honest response is a smaller n_benchmarked, not a made-up number.
+    idx = pd.bdate_range(start="2023-01-02", periods=60)
+    stock = pd.Series(100.0 * 1.01 ** np.arange(60), index=idx)
+    bench = pd.Series(100.0 * 1.005 ** np.arange(30), index=idx[:30])
+    eps = [idx[i] for i in (0, 5, 10, 15, 40, 45)]
+    stats = echo_stats(stock, eps, horizon=5, min_episodes=6, benchmark=bench)
+    assert stats.n == 6
+    assert stats.n_benchmarked == 4  # the two late episodes have no VOO window
+
+
 def test_echo_stats_insufficient_sample_returns_none():
     s = _series(list(np.linspace(100, 200, 60)))
     stats = echo_stats(s, [s.index[0], s.index[10]], horizon=5, min_episodes=6)
@@ -180,6 +219,23 @@ def test_analyze_one_passes_confidence_through_to_the_api_model():
     if echo is not None:  # only assert when a sample was actually found
         assert echo.n_years >= 1
         assert echo.confidence in ("high", "medium", "low")
+
+
+def test_analyze_one_passes_benchmark_stats_through_to_the_api_model():
+    # Regression guard for the same seam that once dropped n_years/confidence:
+    # quartiles and the VOO comparison must survive into the response model.
+    rise = list(np.linspace(100, 200, 900))
+    dip = list(np.linspace(200, 170, 15))
+    adj = _series(rise + dip, start="2021-01-01")
+    bench = _series(list(np.linspace(100, 150, 915)), start="2021-01-01")
+    analyzed = _analyze_one(_metrics(), adj, 63, bench)
+    assert analyzed is not None
+    _, _, echo = analyzed
+    if echo is not None:  # only assert when a sample was actually found
+        assert echo.p25_pct is not None and echo.p75_pct is not None
+        assert echo.n_benchmarked == echo.n  # full benchmark overlap here
+        assert 0 <= echo.beat_benchmark <= echo.n_benchmarked
+        assert echo.median_excess_pct is not None
 
 
 def test_widened_bucket_is_a_superset_of_the_exact_bucket():

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import {
   CartesianGrid,
+  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
   Scatter,
@@ -115,6 +116,15 @@ export function RiskMap({ data }: { data: RiskMapResponse }) {
     bySector.get(p.sector)!.push(p);
   }
 
+  // Explicit domains so the weather-quadrant ReferenceAreas can fill each corner.
+  const vols = data.points.map((p) => p.vol_90d).concat(bench ? [bench.vol_90d] : []);
+  const rets = data.points.map((p) => p.ret_1y).concat(bench ? [bench.ret_1y] : []);
+  const xMin = vols.length ? Math.max(0, Math.floor(Math.min(...vols) - 4)) : 0;
+  const xMax = vols.length ? Math.ceil(Math.max(...vols) + 4) : 60;
+  const yMin = rets.length ? Math.floor(Math.min(...rets) - 8) : -40;
+  const yMax = rets.length ? Math.ceil(Math.max(...rets) + 8) : 40;
+  const zoneLabel = { fontSize: 10, fill: "#5A616B", fontWeight: 600 } as const;
+
   return (
     <div className="card p-4">
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-muted">
@@ -134,11 +144,24 @@ export function RiskMap({ data }: { data: RiskMapResponse }) {
       <ResponsiveContainer width="100%" height={440}>
         <ScatterChart margin={{ top: 8, right: 16, bottom: 24, left: 8 }}>
           <CartesianGrid stroke="rgba(255,255,255,0.05)" />
+          {bench && (
+            <>
+              <ReferenceArea x1={xMin} x2={bench.vol_90d} y1={bench.ret_1y} y2={yMax} fill="#22C989" fillOpacity={0.05}
+                label={{ value: "calm & paid", position: "insideTopLeft", ...zoneLabel }} />
+              <ReferenceArea x1={bench.vol_90d} x2={xMax} y1={bench.ret_1y} y2={yMax} fill="#7C6BFF" fillOpacity={0.04}
+                label={{ value: "wild & paid", position: "insideTopRight", ...zoneLabel }} />
+              <ReferenceArea x1={xMin} x2={bench.vol_90d} y1={yMin} y2={bench.ret_1y} fill="#8B929C" fillOpacity={0.04}
+                label={{ value: "calm & unpaid", position: "insideBottomLeft", ...zoneLabel }} />
+              <ReferenceArea x1={bench.vol_90d} x2={xMax} y1={yMin} y2={bench.ret_1y} fill="#F6465D" fillOpacity={0.05}
+                label={{ value: "wild & unpaid", position: "insideBottomRight", ...zoneLabel }} />
+            </>
+          )}
           <XAxis
             type="number"
             dataKey="vol_90d"
             name="Volatility"
             unit="%"
+            domain={[xMin, xMax]}
             tick={{ fill: "#5A616B", fontSize: 11 }}
             stroke="rgba(255,255,255,0.08)"
             label={{ value: "← safer   ·   Volatility (risk)   ·   riskier →", position: "bottom", fill: "#8B929C", fontSize: 11 }}
@@ -148,6 +171,7 @@ export function RiskMap({ data }: { data: RiskMapResponse }) {
             dataKey="ret_1y"
             name="1y return"
             unit="%"
+            domain={[yMin, yMax]}
             tick={{ fill: "#5A616B", fontSize: 11 }}
             stroke="rgba(255,255,255,0.08)"
             label={{ value: "1-year return →", angle: -90, position: "insideLeft", fill: "#8B929C", fontSize: 11 }}
@@ -157,8 +181,8 @@ export function RiskMap({ data }: { data: RiskMapResponse }) {
 
           {bench && (
             <>
-              <ReferenceLine x={bench.vol_90d} stroke="#7C6BFF" strokeDasharray="4 4" strokeOpacity={0.5} />
-              <ReferenceLine y={bench.ret_1y} stroke="#7C6BFF" strokeDasharray="4 4" strokeOpacity={0.5} />
+              <ReferenceLine x={bench.vol_90d} stroke="#9AA3AD" strokeDasharray="4 4" strokeOpacity={0.5} />
+              <ReferenceLine y={bench.ret_1y} stroke="#9AA3AD" strokeDasharray="4 4" strokeOpacity={0.5} />
             </>
           )}
 
@@ -192,9 +216,10 @@ export function RiskMap({ data }: { data: RiskMapResponse }) {
 
       <p className="mt-2 text-xs text-faint">
         Each dot is a stock: further <b className="text-ink">right</b> = more volatile
-        (riskier), further <b className="text-ink">up</b> = better 1-year return. The
-        dashed lines mark VOO. Anything <b className="text-up">up-and-left</b> of them beat
-        the market with less risk — notice how few names manage it.
+        (riskier), further <b className="text-ink">up</b> = better 1-year return. The dashed
+        cross marks VOO, splitting the map into four climates — <b className="text-up">calm
+        &amp; paid</b> (the dream corner), wild &amp; paid, calm &amp; unpaid, and{" "}
+        <b className="text-down">wild &amp; unpaid</b>. Notice how few names sit up-and-left.
       </p>
     </div>
   );

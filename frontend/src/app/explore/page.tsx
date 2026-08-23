@@ -7,6 +7,8 @@ import { useBudget } from "@/lib/budget";
 import type { RiskMapResponse, SignalsResponse } from "@/lib/types";
 import { SectionHeader } from "@/components/ui/primitives";
 import { TeachBanner } from "@/components/learn/TeachBanner";
+import { PageLesson } from "@/components/learn/PageLesson";
+import { PAGE_LESSONS } from "@/lib/pageLessons";
 import { WarmingNotice, Loading } from "@/components/ui/States";
 import { RiskMap } from "@/components/explore/RiskMap";
 import { Scanners } from "@/components/explore/Scanners";
@@ -32,6 +34,8 @@ export default function ExplorePage() {
           The veteran&apos;s toolkit — every tool captioned with when it lies to you.
         </p>
       </div>
+
+      <PageLesson {...PAGE_LESSONS.explore} />
 
       <WarmingNotice />
 

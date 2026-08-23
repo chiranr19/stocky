@@ -7,6 +7,8 @@ metrics we already compute.
 Rules of the house, enforced by tests:
   * Every reading names what the data says, what a veteran does with it, and
     what would make that reading wrong (``caveat`` is never empty).
+  * Every reading also carries an everyday-life ``analogy`` — the metaphor a
+    beginner remembers when the jargon slides off. Never empty either.
   * Tone is limited to constructive / caution / neutral. Nothing here says buy,
     sell, or should — these are interpretations, not instructions.
 """
@@ -27,6 +29,7 @@ class Reading:
     detail: str
     tone: str
     caveat: str
+    analogy: str = ""  # everyday-life metaphor; effectively required (see tests)
 
 
 # --------------------------------------------------------------------------- #
@@ -54,6 +57,11 @@ def _trend_reading(m: StockMetrics, depth_pct: float | None) -> Reading:
                     "check the historical dip stats below for how deep this stock "
                     "usually goes."
                 ),
+                analogy=(
+                    "Like your favourite store running a sale while it's still busy and "
+                    "well-stocked. The lights are on, the shelves are full — it just "
+                    "happens to be cheaper this week than last."
+                ),
             )
         return Reading(
             aspect="trend",
@@ -69,6 +77,11 @@ def _trend_reading(m: StockMetrics, depth_pct: float | None) -> Reading:
                 "Buying at the highs means paying full price with no discount — your "
                 "downside is the whole gap back to support. Rising charts also make it "
                 "easy to confuse a good company with a good entry."
+            ),
+            analogy=(
+                "Like a runner in the lead with a mile still to go. Being out front is a "
+                "good sign, not a finish line — but there's no slack in the price if they "
+                "stumble."
             ),
         )
 
@@ -86,6 +99,11 @@ def _trend_reading(m: StockMetrics, depth_pct: float | None) -> Reading:
                 "Every big decline also starts exactly like this. The 200-day is the "
                 "line that decides which one this turns out to be."
             ),
+            analogy=(
+                "Like a road-trip that's off the highway but still pointed the right way. "
+                "A wrong turn or a scenic detour both look identical at the first "
+                "junction — the 200-day is the sign that tells you which."
+            ),
         )
 
     if not m.above_ma200 and m.above_ma50:
@@ -101,6 +119,11 @@ def _trend_reading(m: StockMetrics, depth_pct: float | None) -> Reading:
             caveat=(
                 "Downtrends are full of sharp bounces that fail. Until the 200-day is "
                 "reclaimed, this is a rally inside a decline."
+            ),
+            analogy=(
+                "Like a warm afternoon in the middle of winter. It might be the first "
+                "day of spring, or it might just be a warm afternoon — one nice day "
+                "doesn't end the season."
             ),
         )
 
@@ -118,6 +141,11 @@ def _trend_reading(m: StockMetrics, depth_pct: float | None) -> Reading:
             "Downtrends do end, and the biggest winners often come off broken charts — "
             "but nobody can time that from the chart alone. Waiting for price to "
             "reclaim the 200-day costs you some upside and avoids most of the pain."
+        ),
+        analogy=(
+            "Like a down escalator: each step looks cheap next to the one above it, and "
+            "the escalator does not care. The 200-day line is the floor where it stops "
+            "being an escalator."
         ),
     )
 
@@ -142,6 +170,11 @@ def _rsi_reading(m: StockMetrics) -> Reading | None:
                 "performers can hold RSI above 70 for weeks — selling on that alone has "
                 "cost people entire trends."
             ),
+            analogy=(
+                "Like a car that's been flooring the accelerator uphill. It's clearly "
+                "got a strong engine — but it's been running hot, and the easy stretch "
+                "of road is probably behind it."
+            ),
         )
     if r <= 30:
         return Reading(
@@ -157,6 +190,11 @@ def _rsi_reading(m: StockMetrics) -> Reading | None:
                 "In a genuine downtrend RSI can sit under 30 for a long time, printing "
                 "'oversold' the whole way down. Oversold alone is not a floor."
             ),
+            analogy=(
+                "Like a rubber band stretched hard in one direction. In a healthy stock "
+                "it tends to snap back — but a band that's already snapped just keeps "
+                "hanging slack, so it only means something when the trend is still whole."
+            ),
         )
     return Reading(
         aspect="rsi",
@@ -167,6 +205,10 @@ def _rsi_reading(m: StockMetrics) -> Reading | None:
         ),
         tone="neutral",
         caveat="A mid-range RSI says nothing about direction — it's simply quiet.",
+        analogy=(
+            "Like a thermometer reading room temperature: nothing's overheating, nothing's "
+            "frozen. It just isn't the gauge worth staring at right now."
+        ),
     )
 
 
@@ -181,12 +223,25 @@ def _volatility_reading(m: StockMetrics) -> Reading | None:
             "Position size is the lever vets pull here: the same dollar amount in a "
             "wild stock is a much bigger bet than in a calm one."
         )
+        analogy = (
+            "Volatility is the sea state, not the destination. High seas mean the same "
+            "voyage with far more seasickness — and far more passengers who jump "
+            "overboard at exactly the wrong moment."
+        )
     elif v >= 25:
         tone, label = "neutral", "typical for a single stock"
         extra = "Roughly in line with what an individual large-cap normally does."
+        analogy = (
+            "Like normal highway driving: the odd bump and lane change, nothing that "
+            "throws you out of your seat. Ordinary weather for one company's stock."
+        )
     else:
         tone, label = "constructive", "calm"
         extra = "Quiet stocks are easier to hold through bad news, which matters more than it sounds."
+        analogy = (
+            "Like a smooth-riding sedan versus a dirt bike. A calmer ride is far easier "
+            "to stay seated on when the road turns bad — which is usually when it counts."
+        )
     return Reading(
         aspect="volatility",
         headline=f"Volatility {v:.0f}% — {label}",
@@ -199,6 +254,7 @@ def _volatility_reading(m: StockMetrics) -> Reading | None:
             "Volatility is measured on the last 90 days and changes fast — it spikes "
             "*after* trouble starts, so a calm reading is not a promise of a calm future."
         ),
+        analogy=analogy,
     )
 
 
@@ -218,6 +274,11 @@ def _position_reading(m: StockMetrics) -> Reading | None:
                 "It also means every buyer today is paying more than everyone did all "
                 "year. There's no support directly beneath a new high."
             ),
+            analogy=(
+                "Like climbing above the tree line: nobody above you is stuck holding a "
+                "loss, so the air is clear — but there's also nothing underfoot to catch "
+                "you if you slip."
+            ),
         )
     if p <= 0.10:
         return Reading(
@@ -233,6 +294,11 @@ def _position_reading(m: StockMetrics) -> Reading | None:
             caveat=(
                 "'Down a lot' says nothing about how much further it can fall. A stock "
                 "that has dropped 50% can drop another 50%."
+            ),
+            analogy=(
+                "Like a clearance rack: sometimes it's a genuine bargain, sometimes it's "
+                "there because nobody wants it. The only way to tell them apart is "
+                "whether the trend and the business have stopped sliding."
             ),
         )
     return None
@@ -252,6 +318,11 @@ def _drawdown_reading(m: StockMetrics) -> Reading:
         caveat=(
             "This is the worst of the *past* year only. A calmer year doesn't cap what "
             "the next one can do — 2020 and 2022 both produced far deeper drops."
+        ),
+        analogy=(
+            "The deepest pothole on the road already driven. Owning this meant riding "
+            "through it — the honest question is whether your hands stay on the wheel "
+            "the next time one shows up."
         ),
     )
 
@@ -273,6 +344,11 @@ def _volume_reading(m: StockMetrics) -> Reading | None:
             "Volume tells you people acted, not who was right. Heavy volume appears at "
             "both panic bottoms and euphoric tops."
         ),
+        analogy=(
+            "Like a sudden crowd outside a shop. Something drew them — a sale, a scare, a "
+            "rumour — and a price move made in a crowd carries more weight than one made "
+            "in an empty street. The crowd just doesn't tell you who's right."
+        ),
     )
 
 
@@ -291,6 +367,11 @@ def _cross_reading(m: StockMetrics) -> Reading | None:
                 "large part of the move has already happened, and it produces false "
                 "starts in choppy markets."
             ),
+            analogy=(
+                "Like a weather forecast that turns sunny only after you've noticed it's "
+                "warm out. Widely watched enough to be partly self-fulfilling — and "
+                "always a step behind the actual weather."
+            ),
         )
     if m.cross == "death":
         return Reading(
@@ -304,6 +385,10 @@ def _cross_reading(m: StockMetrics) -> Reading | None:
             caveat=(
                 "Famously prone to firing near bottoms — it lags, so it often confirms "
                 "a decline that is already mostly over."
+            ),
+            analogy=(
+                "The same late forecast, now calling for rain — often just as the storm "
+                "is clearing. It confirms the downturn rather than warning of it."
             ),
         )
     return None
@@ -341,6 +426,10 @@ def vix_reading(level: float) -> Reading:
                 "Calm is when complacency builds. Volatility spikes start from low "
                 "levels, never from high ones."
             ),
+            analogy=(
+                "Umbrella insurance is cheapest on a sunny day — which is also when "
+                "everyone stops carrying one. The VIX is that price of protection."
+            ),
         )
     if level <= 25:
         return Reading(
@@ -352,6 +441,10 @@ def vix_reading(level: float) -> Reading:
             ),
             tone="neutral",
             caveat="A normal VIX gives no directional information at all.",
+            analogy=(
+                "A partly-cloudy forecast: might rain, might not. You carry an umbrella "
+                "out of habit, not fear. Ordinary market weather."
+            ),
         )
     return Reading(
         aspect="vix",
@@ -365,6 +458,11 @@ def vix_reading(level: float) -> Reading:
         caveat=(
             "High fear can go far higher, and 'stressed' has preceded plenty of further "
             "declines. It measures expected movement, not direction."
+        ),
+        analogy=(
+            "Umbrella prices spiking as the sky darkens: everyone wants cover at once, so "
+            "it costs the most exactly when it feels most needed. Storms this loud have "
+            "often marked better entry points than the sunny days — because they feel awful."
         ),
     )
 
@@ -384,6 +482,11 @@ def breadth_reading(pct_above_ma50: float, advancers: int, decliners: int) -> Re
                 "Breadth is a snapshot that can deteriorate quickly, and it says "
                 "nothing about valuation."
             ),
+            analogy=(
+                "Like a party where the whole room is dancing, not just the DJ. A crowd "
+                "that's all in tends to keep the night going longer than a floor propped "
+                "up by a few show-offs."
+            ),
         )
     if pct_above_ma50 >= 45:
         return Reading(
@@ -395,6 +498,10 @@ def breadth_reading(pct_above_ma50: float, advancers: int, decliners: int) -> Re
             ),
             tone="neutral",
             caveat="Mixed breadth resolves in either direction — it's a wait-and-see state.",
+            analogy=(
+                "Half the room is dancing, half is checking their coats. The night could "
+                "warm up or wind down — the floor hasn't decided yet."
+            ),
         )
     return Reading(
         aspect="breadth",
@@ -408,6 +515,11 @@ def breadth_reading(pct_above_ma50: float, advancers: int, decliners: int) -> Re
         caveat=(
             "Narrow markets can stay narrow for a long time, and the leaders sometimes "
             "keep leading. It's a risk flag, not a timing tool."
+        ),
+        analogy=(
+            "Like a parade carried by a few tall floats while the marchers behind have "
+            "stopped. From the front row it still looks like a parade — but the crowd has "
+            "quietly thinned out."
         ),
     )
 
@@ -426,5 +538,10 @@ def yield_reading(level: float, change_pct: float) -> Reading:
         caveat=(
             "The stock/yield relationship is loose and flips depending on *why* yields "
             "are moving — growth optimism and inflation fear look identical on this tile."
+        ),
+        analogy=(
+            "The 10-year yield is the interest a totally safe savings account pays. When "
+            "it rises, that safe account competes harder for your money, and the priciest "
+            "growth stocks — the ones promising payoffs far in the future — feel it most."
         ),
     )

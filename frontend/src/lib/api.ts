@@ -1,7 +1,10 @@
 import type {
+  BasketResponse,
   CalendarResponse,
   CompareResponse,
+  ConeResponse,
   DataHealth,
+  FilersResponse,
   Fundamentals,
   OverviewResponse,
   PulseResponse,
@@ -12,6 +15,8 @@ import type {
   StockDetail,
   TimeMachineResult,
   UniverseItem,
+  WatchlistEntry,
+  WatchlistResponse,
   WatchoutsResponse,
 } from "./types";
 
@@ -114,6 +119,37 @@ export const getHealth = () => fetchJSON<DataHealth>("/health/data");
 export const getUniverse = () => getJSON<UniverseItem[]>("/universe");
 export const getOverview = () => getJSON<OverviewResponse>("/overview");
 export const getPulse = () => getJSON<PulseResponse>("/pulse");
+
+export const getLearnBasket = () => getJSON<BasketResponse>("/learn/basket");
+
+// --- Watchlist management (the only mutating calls; they bypass the SWR cache,
+// and callers must clearApiCache() + refetch afterwards). ---
+async function mutateJSON<T>(path: string, method: "POST" | "DELETE"): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, { method, cache: "no-store" });
+  } catch {
+    throw new ApiError(`Can't reach the API at ${BASE_URL}.`, 0);
+  }
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const body = await res.json();
+      if (body?.detail) detail = body.detail;
+    } catch {
+      /* keep statusText */
+    }
+    throw new ApiError(detail, res.status);
+  }
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
+}
+
+export const getWatchlist = () => fetchJSON<WatchlistResponse>("/watchlist");
+export const addToWatchlist = (t: string) =>
+  mutateJSON<WatchlistEntry>(`/watchlist/${encodeURIComponent(t.trim().toUpperCase())}`, "POST");
+export const removeFromWatchlist = (t: string) =>
+  mutateJSON<void>(`/watchlist/${encodeURIComponent(t.trim().toUpperCase())}`, "DELETE");
 export const getCalendar = () => getJSON<CalendarResponse>("/calendar");
 
 export const getSectors = (budget: number | null) =>
@@ -142,8 +178,20 @@ export const getRadar = (
 export const getWatchouts = (budget: number | null, limit = 30) =>
   getJSON<WatchoutsResponse>(`/watchouts?${budgetParam(budget)}&limit=${limit}`);
 
+export const getFilers = (
+  kind: "all" | "insider" | "congress" = "all",
+  action: "all" | "buy" | "sell" | "grant" = "all",
+  limit = 60,
+) => getJSON<FilersResponse>(`/filers?kind=${kind}&action=${action}&limit=${limit}`);
+
 export const getCompare = (tickers: string[]) =>
   getJSON<CompareResponse>(`/compare?tickers=${tickers.join(",")}`);
+
+// The cone is deterministic (seeded), so caching it is safe.
+export const getCone = (ticker: string, horizon: 21 | 63 | 126 | 252 = 126) =>
+  getJSON<ConeResponse>(
+    `/cone?ticker=${encodeURIComponent(ticker.toUpperCase())}&horizon=${horizon}`,
+  );
 
 export const getStock = (ticker: string) =>
   getJSON<StockDetail>(`/stock/${encodeURIComponent(ticker.toUpperCase())}`);

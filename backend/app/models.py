@@ -36,6 +36,10 @@ class WatchlistCard(BaseModel):
     unusual_volume: bool
     big_mover: bool
     sparkline: list[float] = Field(description="Recent closes, oldest → newest.")
+    # Curated teaching role (watchlist members only; None for the rest).
+    role: str | None = None
+    role_story: str | None = None
+    role_lesson: str | None = None
 
 
 class PulseResponse(BaseModel):
@@ -158,6 +162,7 @@ class Reading(BaseModel):
     detail: str = Field(description="What it says + what veterans do with it.")
     tone: str = Field(description="constructive | caution | neutral — never advice.")
     caveat: str = Field(description="What would make this reading wrong.")
+    analogy: str = Field(default="", description="Everyday-life metaphor for the pattern.")
 
 
 # --------------------------------------------------------------------------- #
@@ -267,6 +272,17 @@ class EchoStats(BaseModel):
         default="low",
         description="high | medium | low — sample size AND spread across market regimes.",
     )
+    p25_pct: float | None = Field(default=None, description="25th percentile forward return.")
+    p75_pct: float | None = Field(default=None, description="75th percentile forward return.")
+    n_benchmarked: int = Field(
+        default=0, description="Episodes where VOO had data over the same forward window."
+    )
+    beat_benchmark: int = Field(
+        default=0, description="Of those, how many beat VOO over that window."
+    )
+    median_excess_pct: float | None = Field(
+        default=None, description="Median (stock − VOO) return over the same windows."
+    )
 
 
 class RiskFlag(BaseModel):
@@ -278,6 +294,7 @@ class RiskFlag(BaseModel):
     severity: str = Field(description="high | medium | low")
     why: str
     what_vets_do: str
+    analogy: str = Field(default="", description="Everyday-life metaphor for the pattern.")
 
 
 class WatchoutRow(BaseModel):
@@ -315,6 +332,100 @@ class RadarResponse(BaseModel):
 
 
 # --------------------------------------------------------------------------- #
+# Learn: the watchlist through the teaching lens (powers /learn + the digest)
+# --------------------------------------------------------------------------- #
+class BasketMember(BaseModel):
+    """One watchlist name as a teaching subject: its curated role + live numbers."""
+
+    ticker: str
+    name: str
+    role: str = Field(description="Short label, e.g. 'The anchor tenant'.")
+    group: str = Field(description="mega | umbrella | wildcard | benchmark | scout — narrative family.")
+    role_story: str
+    role_lesson: str
+    role_source: str = Field(default="curated", description="curated | archetype (derived from the numbers).")
+    source: str = Field(default="seed", description="seed | user — how it joined the watchlist.")
+    added_at: date | None = None
+    # Live numbers — all optional so a young listing (XE) degrades to 'unmeasurable'.
+    price: float | None = None
+    change_pct: float | None = None
+    vol_90d: float | None = None
+    ret_1y: float | None = None
+    above_ma200: bool | None = None
+    depth_pct: float | None = None
+    max_drawdown_1y: float | None = None
+    range_52w_position: float | None = None
+    since_added_pct: float | None = Field(default=None, description="Return since it joined the list.")
+    since_added_voo_pct: float | None = Field(default=None, description="VOO over the identical window.")
+    spark: list[float] = Field(default=[], description="Recent closes, oldest → newest.")
+    series_1y: list[float] = Field(
+        default=[], description="~60 downsampled adj-closes for the underwater/race charts."
+    )
+    series_start: date | None = Field(
+        default=None, description="Date of series_1y's first point — for aligning the race."
+    )
+    regime_1y: list[bool] = Field(
+        default=[], description="Above (True) / below its 200-day line at each series_1y point."
+    )
+    rain: list[float | None] = Field(
+        default=[], description="Daily % returns aligned to rain_dates (None = didn't trade that day)."
+    )
+    echo: EchoStats | None = None
+    flag_codes: list[str] = Field(default=[], description="Flag codes in play (labels resolve client-side).")
+    attention: float = Field(default=0.0, description="Needs-attention score: fresh events + hazards float up.")
+    measurable: bool = Field(
+        default=True, description="False when history is too thin to compute risk — a lesson, not an error."
+    )
+
+
+class WatchEvent(BaseModel):
+    """One plain-English day-over-day change on a watchlist name."""
+
+    ticker: str
+    name: str
+    code: str
+    headline: str
+    detail: str
+    tone: str = Field(description="constructive | caution | neutral")
+    severity: int = Field(description="1..5 ordering weight; higher = more urgent.")
+
+
+class BasketResponse(BaseModel):
+    as_of: date
+    roles_as_of: str = Field(description="Date the curated stories were written; their numbers are frozen there.")
+    laws: list[str] = Field(description="The transferable lessons this watchlist keeps teaching.")
+    members: list[BasketMember]  # watchlist order
+    correlation: dict = Field(description="{labels, matrix} over members with enough history + VOO.")
+    correlation_note: str = Field(default="", description="Which members were left out of the matrix and why.")
+    benchmark_ticker: str
+    events: list[WatchEvent] = Field(default=[], description="What changed on the watchlist since yesterday.")
+    rain_dates: list[date] = Field(
+        default=[], description="The shared last-60 trading calendar the rain strips align to."
+    )
+    constellation: dict = Field(
+        default={},
+        description="{nodes:[{ticker,x,y}], mst:[{a,b,r}]} — the correlation map + its skeleton.",
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Watchlist management (the app's first mutations)
+# --------------------------------------------------------------------------- #
+class WatchlistEntryModel(BaseModel):
+    ticker: str
+    name: str
+    added_at: date
+    added_price: float | None = None
+    source: str  # 'seed' | 'user'
+    active: bool
+
+
+class WatchlistResponse(BaseModel):
+    entries: list[WatchlistEntryModel]
+    hidden: list[WatchlistEntryModel]
+
+
+# --------------------------------------------------------------------------- #
 # Analytics: compare
 # --------------------------------------------------------------------------- #
 class CompareSeries(BaseModel):
@@ -340,6 +451,48 @@ class CompareResponse(BaseModel):
     stats: list[CompareStat]
     correlation: dict  # {labels: [...], matrix: [[...]]}
     histograms: dict[str, dict]  # ticker -> {counts, edges}
+
+
+# --------------------------------------------------------------------------- #
+# Cone of uncertainty (v1.0) — the only honest "forecast": a range of plausible
+# futures resampled from the stock's OWN past daily moves, never a point call.
+# All band/path values are MULTIPLIERS of the start price (1.0 = today), so the
+# frontend renders them lens-native (× a hypothetical $ position, or as %).
+# --------------------------------------------------------------------------- #
+class ConePoint(BaseModel):
+    session: int = Field(description="Trading days ahead (0 = today).")
+    p10: float = Field(description="10th percentile multiplier of the start price.")
+    p25: float
+    p50: float = Field(description="The middle path (50th percentile).")
+    p75: float
+    p90: float
+
+
+class ConeBenchmark(BaseModel):
+    ticker: str
+    name: str
+    bands: list[ConePoint]
+    end: ConePoint
+
+
+class ConeResponse(BaseModel):
+    ticker: str
+    name: str
+    as_of: date
+    horizon_sessions: int
+    start_price: float = Field(description="Today's share price — the anchor the multipliers scale.")
+    n_paths: int = Field(description="How many simulated futures were drawn.")
+    n_history_sessions: int = Field(description="Past daily moves the simulation resampled from.")
+    vol_annualized_pct: float = Field(description="Annualized volatility of those daily moves.")
+    bands: list[ConePoint] = Field(description="Pointwise percentile envelope, downsampled.")
+    sample_paths: list[list[float]] = Field(
+        description="A handful of individual simulated futures (multipliers) for the replay."
+    )
+    end: ConePoint = Field(description="The percentile spread at the final session.")
+    samples_up: int = Field(description="Of the sample paths, how many ended above today.")
+    samples_down: int
+    benchmark: ConeBenchmark | None = None
+    caveat: str = Field(description="Where this lies to you — always attached.")
 
 
 # --------------------------------------------------------------------------- #
@@ -410,3 +563,94 @@ class MacroEvent(BaseModel):
 class CalendarResponse(BaseModel):
     earnings: list[EarningsEvent]
     macro: list[MacroEvent]
+
+
+# --------------------------------------------------------------------------- #
+# Followed Filers (v0.8): public insider (SEC Form 4) + congressional (STOCK Act)
+# disclosures, studied — never a copy-trade signal. Every row keeps a provenance
+# URL, and every enriched number traces to our own price cache.
+# --------------------------------------------------------------------------- #
+class DisclosedTrade(BaseModel):
+    source: str = Field(description="edgar | house | senate")
+    filing_id: str = Field(description="Accession / DocID — the provenance key.")
+    filer: str
+    filer_role: str
+    ticker: str
+    name: str
+    asset_class: str = Field(description="equity | option | other (only equity is priceable).")
+    action: str = Field(description="buy | sell | grant | other.")
+    trade_date: date
+    filed_date: date = Field(description="When the public could first know it.")
+    lag_days: int = Field(description="filed_date − trade_date: the disclosure lag.")
+    shares: float | None = None
+    price: float | None = None
+    value_lo: float = Field(description="Disclosed dollar range low (congress) or shares×price.")
+    value_hi: float = Field(description="Disclosed dollar range high (congress) or shares×price.")
+    scheduled: bool = Field(description="10b5-1 pre-arranged plan — not a reaction to news.")
+    url: str = Field(description="Link to the original official filing.")
+    priceable: bool = Field(description="Equity mapped to our price universe (enrichment valid).")
+    # Enrichment — all from our own price cache, None when unavailable.
+    since_trade_pct: float | None = Field(
+        default=None, description="Price change from the trade date to now."
+    )
+    since_filed_pct: float | None = Field(
+        default=None, description="Price change from the disclosure date to now (what a follower gets)."
+    )
+    lag_tax_pct: float | None = Field(
+        default=None, description="Price move between trade and disclosure — the copier's built-in cost."
+    )
+    voo_since_filed_pct: float | None = Field(
+        default=None, description="VOO over the same since-disclosure window (opportunity cost)."
+    )
+
+
+class FilerBaseRate(BaseModel):
+    """Has following this filer's *disclosed buys* actually paid, historically?
+
+    Forward outcomes measured from each buy's disclosure date (the only date a
+    follower could act), pooled across every ticker they bought. Base rates with
+    N and confidence always attached — never a prediction, never advice.
+    """
+
+    filer: str
+    window_days: int
+    n: int = Field(description="Disclosed buys with a full forward window.")
+    median_fwd_pct: float
+    win_rate: float = Field(description="Share of those buys up after the window, 0-1.")
+    worst_pct: float
+    best_pct: float
+    p25_pct: float | None = None
+    p75_pct: float | None = None
+    n_years: int = Field(default=0, description="Distinct calendar years the buys span.")
+    confidence: str = Field(description="high | medium | low — sample size AND spread.")
+    n_benchmarked: int = 0
+    beat_benchmark: int = Field(default=0, description="Of those, how many beat VOO.")
+    median_excess_pct: float | None = Field(
+        default=None, description="Median (stock − VOO) over the same windows."
+    )
+    median_lag_days: int = Field(default=0, description="Typical disclosure lag for this filer.")
+
+
+class FilerNotice(BaseModel):
+    """A named, caveated pattern across the filings — the 'flags' for disclosures."""
+
+    code: str = Field(description="cluster_buying | scheduled_sale | filer_sold_radar_name")
+    headline: str
+    detail: str
+    tone: str = Field(description="constructive | caution | neutral — never advice.")
+    caveat: str = Field(description="What would make this reading wrong.")
+    tickers: list[str] = []
+    filers: list[str] = []
+
+
+class FilersResponse(BaseModel):
+    as_of: date
+    kind: str = Field(description="all | insider | congress")
+    source_label: str = Field(description="Which official sources backed this payload.")
+    filings_through: date | None = Field(
+        default=None, description="Freshest filing date on record (honest freshness)."
+    )
+    note: str = Field(description="Persistent honesty note (e.g. no per-trade Trump data exists).")
+    trades: list[DisclosedTrade]
+    base_rates: list[FilerBaseRate]
+    notices: list[FilerNotice]

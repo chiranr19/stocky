@@ -115,6 +115,21 @@ breadth_html = f"""
     <div class="bcell"><span class="lbl">Read</span><span class="num">{read}</span></div>
   </div>"""
 
+# What today's picture means — the reading layer, with its everyday-life analogy.
+readings_html = ""
+for r in overview.get("readings", []):
+    tone = r.get("tone", "neutral")
+    tcls = "pos" if tone == "constructive" else "neg" if tone == "caution" else "muted"
+    analogy = f'<div class="ranalogy">Think of it like: {esc(r["analogy"])}</div>' if r.get("analogy") else ""
+    readings_html += f"""
+    <div class="reading">
+      <div class="rhead {tcls}">{esc(r['headline'])}</div>
+      <div class="rdetail">{esc(r['detail'])}</div>
+      {analogy}
+    </div>"""
+if readings_html:
+    readings_html = f'<div class="card readings">{readings_html}</div>'
+
 # ---------------------------------------------------------------- sectors
 sector_html = ""
 for p in sectors["sectors"]:
@@ -188,9 +203,10 @@ signals_html = (
 # ---------------------------------------------------------------- watchlist
 watch_html = ""
 for c in pulse["watchlist"]:
+    role = f'<div class="role">{esc(c["role"])}</div>' if c.get("role") else ""
     watch_html += f"""
     <div class="row">
-      <div class="ident"><div class="tick">{esc(c['ticker'])}</div><div class="name">{esc(c['name'])}</div></div>
+      <div class="ident"><div class="tick">{esc(c['ticker'])}</div><div class="name">{esc(c['name'])}</div>{role}</div>
       <div class="rspark">{spark(c['sparkline'])}</div>
       <div class="rprice"><div class="num price">{money(c['price'])}</div>{chg(c['change_pct'], arrow=False)}</div>
     </div>"""
@@ -272,6 +288,13 @@ color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-s
 .num{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 .pos{color:var(--up)}.neg{color:var(--down)}.muted{color:var(--muted)}.dim{color:var(--faint)}
 .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint)}
+.role{font-size:10px;color:var(--accent);margin-top:1px}
+.readings{padding:2px 12px}
+.reading{padding:9px 0;border-bottom:1px solid var(--hair)}
+.reading:last-child{border-bottom:none}
+.rhead{font-size:13px;font-weight:600}
+.rdetail{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.5}
+.ranalogy{font-size:12px;color:var(--faint);font-style:italic;margin-top:3px;line-height:1.5}
 header{position:sticky;top:0;z-index:5;background:rgba(10,11,13,.82);backdrop-filter:blur(10px);
 border-bottom:1px solid var(--hair);margin-bottom:16px}
 .hrow{max-width:28rem;margin:0 auto;padding:12px 14px;display:flex;align-items:center;gap:10px}
@@ -371,6 +394,7 @@ html = f"""<title>Stocky — Market Snapshot</title>
   <h2>Market overview <span class="sub">check the weather first</span></h2>
   {tile_html}
   {breadth_html}
+  {readings_html}
 
   <h2>Entry Radar <span class="sub">pullback setups, validated by history</span></h2>
   <div class="card rows">{radar_html}</div>

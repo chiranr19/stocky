@@ -8,6 +8,8 @@ import type { WatchoutsResponse } from "@/lib/types";
 import { fmtDate } from "@/lib/format";
 import { SectionHeader } from "@/components/ui/primitives";
 import { TeachBanner } from "@/components/learn/TeachBanner";
+import { PageLesson } from "@/components/learn/PageLesson";
+import { PAGE_LESSONS } from "@/lib/pageLessons";
 import { Term } from "@/components/ui/Term";
 import { Loading, WarmingNotice } from "@/components/ui/States";
 import { WatchoutRowItem } from "@/components/watchouts/WatchoutList";
@@ -31,6 +33,8 @@ export default function WatchoutsPage() {
           {data ? ` · as of ${fmtDate(data.as_of)}` : ""}.
         </p>
       </div>
+
+      <PageLesson {...PAGE_LESSONS.watchouts} />
 
       <WarmingNotice />
 

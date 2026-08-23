@@ -22,9 +22,7 @@ import pandas as pd
 import yfinance as yf
 
 from ..config import (
-    ALL_TICKERS,
     ANOMALY_DAY_MOVE_PCT,
-    PRIORITY_TICKERS,
     settings,
 )
 from ..db import db_lock
@@ -35,6 +33,36 @@ _PRICE_COLUMNS = ["ticker", "date", "open", "high", "low", "close", "adj_close",
 # warm-up (~290 calendar days) + ~4.5 years of detectable setups + the forward
 # window. Widening this triggers a one-time universe back-fill on next warm-up.
 HISTORY_LOOKBACK = dt.timedelta(days=2000)
+
+
+# --------------------------------------------------------------------------- #
+# The ticker universe — computed at CALL time so a live watchlist edit is seen
+# --------------------------------------------------------------------------- #
+def priority_tickers() -> list[str]:
+    """Watchlist + benchmark + sector ETFs + macro tickers, in that order.
+
+    The benchmark, sector ETFs, and macro tickers are appended independently of
+    the watchlist, so removing (say) VOO from the watchlist never breaks the
+    benchmark, the weather tiles, or the learn page's VOO series.
+    """
+    from ..config import MACRO_TICKERS, SECTOR_ETFS_LIST
+    from ..config import PRIORITY_TICKERS as _seed_priority
+
+    try:
+        from . import watchlist as watchlist_service
+
+        wl = watchlist_service.tickers()
+    except Exception:  # no DB yet / a bare script — fall back to the seed constant
+        return list(_seed_priority)
+    extras = [settings.benchmark, *SECTOR_ETFS_LIST, *MACRO_TICKERS]
+    return list(dict.fromkeys([*wl, *extras]))
+
+
+def all_tickers() -> list[str]:
+    """Priority tickers first, then the rest of the S&P 500 universe."""
+    from ..config import UNIVERSE
+
+    return list(dict.fromkeys([*priority_tickers(), *UNIVERSE]))
 
 
 class MarketDataError(RuntimeError):
@@ -230,7 +258,7 @@ def _ensure(tickers: list[str], start: dt.date, end: dt.date) -> None:
 @dataclass
 class WarmState:
     status: str = "idle"  # idle | warming | ready
-    total: int = len(ALL_TICKERS)
+    total: int = 0  # set at warm-up start from all_tickers(); never frozen at import
     loaded: int = 0
     started_at: dt.datetime | None = None
     finished_at: dt.datetime | None = None
@@ -251,19 +279,20 @@ def _chunks(seq: list[str], size: int) -> list[list[str]]:
 
 
 def warm_universe() -> None:
-    """Ingest ALL_TICKERS (priority first) in chunks. Idempotent & resumable."""
+    """Ingest all_tickers() (priority first) in chunks. Idempotent & resumable."""
     global _warm_state
+    tickers = all_tickers()  # snapshot once so total and the loop agree
     with _warm_lock:
         if _warm_state.status == "warming":
             return
-        _warm_state = WarmState(status="warming", started_at=_utcnow())
+        _warm_state = WarmState(status="warming", started_at=_utcnow(), total=len(tickers))
 
     end = dt.date.today()
     start = end - HISTORY_LOOKBACK
     failed: list[str] = []
     loaded = 0
 
-    for chunk in _chunks(ALL_TICKERS, settings.ingest_chunk_size):
+    for chunk in _chunks(tickers, settings.ingest_chunk_size):
         got = _ingest(chunk, start, end)
         for ticker in chunk:
             # Only count as failed if we have nothing cached at all for it.
@@ -285,6 +314,9 @@ def warm_universe() -> None:
         analytics.build_sectors(DEFAULT_BUDGET)
         build_radar(DEFAULT_BUDGET, "3m", 30)
         analytics.build_watchouts(DEFAULT_BUDGET, 30)
+        from .learn import build_basket
+
+        build_basket()
     except Exception:
         pass  # best-effort; dashboard still works without pre-warming
 
@@ -421,8 +453,8 @@ def data_health() -> dict:
     return {
         "status": state.status,
         "tickers_loaded": int(loaded or 0),
-        "tickers_total": state.total,
-        "priority_total": len(PRIORITY_TICKERS),
+        "tickers_total": state.total or len(all_tickers()),
+        "priority_total": len(priority_tickers()),
         "warm_loaded": state.loaded,
         "latest_trading_date": latest,
         "last_ingest_at": last_ingest,

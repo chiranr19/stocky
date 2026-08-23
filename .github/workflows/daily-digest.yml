@@ -2,13 +2,36 @@ name: Daily Digest
 
 on:
   schedule:
-    # 22:30 UTC on weekdays — after the US market close (16:00 ET / 21:00 UTC).
-    - cron: "30 22 * * 1-5"
+    # Target: 3:00 PM ET on weekdays (during the trading session — the digest
+    # labels itself as an intraday snapshot; the next day's fetch replaces the
+    # partial daily bar via INSERT OR REPLACE, so data self-heals).
+    # GitHub cron is UTC-only, so two crons bracket DST and the gate job below
+    # lets through only the one that lands in the 3 PM ET hour.
+    - cron: "0 19 * * 1-5"  # 3 PM EDT (summer)
+    - cron: "0 20 * * 1-5"  # 3 PM EST (winter)
   workflow_dispatch:
 
 jobs:
+  gate:
+    name: Is it 3 PM ET?
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.check.outputs.go }}
+    steps:
+      - id: check
+        run: |
+          hour=$(TZ=America/New_York date +%H)
+          echo "ET hour: $hour (event: ${{ github.event_name }})"
+          if [ "$hour" = "15" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          fi
+
   digest:
     name: Build and send the daily digest
+    needs: gate
+    if: needs.gate.outputs.go == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -36,6 +59,14 @@ jobs:
 
       - name: Warm market data
         run: python scripts/warm_data.py
+
+      # Followed Filers: pull new SEC Form 4 disclosures (bounded, idempotent).
+      # Missing EDGAR_USER_AGENT is handled gracefully — the script prints setup
+      # notes and exits 0, so the digest still runs without insider data.
+      - name: Warm filings (SEC EDGAR)
+        env:
+          EDGAR_USER_AGENT: ${{ secrets.EDGAR_USER_AGENT }}
+        run: python scripts/warm_filings.py
 
       - name: Audit data quality (report only)
         run: python scripts/audit_data.py || true

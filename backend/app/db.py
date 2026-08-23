@@ -54,6 +54,50 @@ CREATE TABLE IF NOT EXISTS stock_info (
     fetched_at   TIMESTAMP,
     payload_json VARCHAR
 );
+
+-- Followed Filers (v0.8): public insider (SEC Form 4) and congressional (STOCK
+-- Act PTR) disclosures. Every row keeps its provenance URL; only rows that pass
+-- the integrity pipeline land here — malformed/suspect ones go to ingest_log.
+CREATE TABLE IF NOT EXISTS disclosed_trades (
+    source      VARCHAR,   -- 'edgar' | 'house' | 'senate'
+    filing_id   VARCHAR,   -- accession number / DocID (provenance key)
+    filer       VARCHAR,   -- reporting owner / member name
+    filer_role  VARCHAR,   -- 'Director, CEO' | 'Senator (R-AL)' | ...
+    ticker      VARCHAR,
+    asset_class VARCHAR,   -- 'equity' | 'option' | 'other' (only equity is priceable)
+    action      VARCHAR,   -- 'buy' | 'sell' | 'grant' | 'other'
+    trade_date  DATE,      -- when they traded
+    filed_date  DATE,      -- when the public could first know (the lag tax anchor)
+    shares      DOUBLE,    -- NULL when only a range is disclosed (congress)
+    price       DOUBLE,    -- per-share (Form 4); NULL for congress
+    value_lo    DOUBLE,    -- disclosed dollar range low  (congress); else shares*price
+    value_hi    DOUBLE,    -- disclosed dollar range high (congress); else shares*price
+    scheduled   BOOLEAN,   -- 10b5-1 pre-arranged plan (Form 4) — not a reaction
+    url         VARCHAR,   -- link to the original official filing
+    PRIMARY KEY (source, filing_id, ticker, trade_date, action)
+);
+
+-- Incremental-fetch watermark per (source, key). `key` is an issuer CIK for
+-- EDGAR, a chamber/year for congress. Lets any failed run resume cleanly.
+CREATE TABLE IF NOT EXISTS filer_meta (
+    source           VARCHAR,
+    key              VARCHAR,
+    last_checked     TIMESTAMP,
+    last_filing_date DATE,
+    PRIMARY KEY (source, key)
+);
+
+-- Living watchlist (v0.9). Seeded once from config.WATCHLIST (+ DVA); after
+-- that the DB is the source of truth. Remove = active FALSE (restorable), so
+-- 'since added' history and provenance survive a hide/restore round-trip.
+CREATE TABLE IF NOT EXISTS watchlist (
+    ticker      VARCHAR PRIMARY KEY,
+    added_at    DATE NOT NULL,       -- trading day it joined the list
+    added_price DOUBLE,              -- close that day (NULL until data exists)
+    source      VARCHAR NOT NULL,    -- 'seed' | 'user'
+    active      BOOLEAN NOT NULL DEFAULT TRUE,
+    position    INTEGER NOT NULL     -- stable display order
+);
 """
 
 

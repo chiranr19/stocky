@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { GraduationCap, X } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, GraduationCap, X } from "lucide-react";
 import { Term } from "@/components/ui/Term";
 
 const KEY = "stocky.starthere.dismissed";
@@ -95,6 +96,13 @@ export function StartHere() {
             </span>
           </li>
         </ul>
+        <Link
+          href="/learn"
+          className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-sm font-medium text-accent transition-colors hover:bg-accent/20"
+        >
+          Prefer stories to charts? Take the guided tour
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
       </div>
     </div>
   );

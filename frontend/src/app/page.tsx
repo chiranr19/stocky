@@ -33,6 +33,7 @@ import { SectionHeader } from "@/components/ui/primitives";
 import { StartHere } from "@/components/learn/StartHere";
 import { TeachBanner } from "@/components/learn/TeachBanner";
 import { MarketStrip } from "@/components/overview/MarketStrip";
+import { WeatherStation } from "@/components/weather/WeatherStation";
 import { SectorHeatmapStrip } from "@/components/sectors/SectorHeatmapStrip";
 import { SectorSection } from "@/components/sectors/SectorSection";
 import { WatchlistStrip } from "@/components/pulse/WatchlistStrip";
@@ -96,6 +97,11 @@ export default function PulsePage() {
         {overview ? (
           <div className="space-y-3">
             <MarketStrip tiles={overview.tiles} breadth={overview.breadth} />
+            <WeatherStation
+              tiles={overview.tiles}
+              breadth={overview.breadth}
+              readings={overview.readings}
+            />
             <Readings
               readings={overview.readings}
               title="What today's market picture means"
@@ -243,7 +249,16 @@ export default function PulsePage() {
 
       {/* Watchlist */}
       <section>
-        <SectionHeader icon={Star} title="Watchlist" sub="seeded highlights" />
+        <SectionHeader
+          icon={Star}
+          title="Watchlist"
+          sub="your cast"
+          right={
+            <Link href="/watchlist" className="flex items-center gap-1 text-xs text-muted transition-colors hover:text-accent">
+              Manage <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          }
+        />
         {pulse ? (
           <WatchlistStrip cards={pulse.watchlist} />
         ) : (

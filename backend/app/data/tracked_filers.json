@@ -1,0 +1,99 @@
+{
+  "snapshot_date": "2026-08-22",
+  "source": "https://www.sec.gov/files/company_tickers.json",
+  "issuers": [
+    {
+      "ticker": "TSLA",
+      "cik": 1318605,
+      "issuer_name": "Tesla, Inc.",
+      "famous_owner": "Musk Elon",
+      "note": "Elon Musk \u2014 fully trackable via Form 4."
+    },
+    {
+      "ticker": "NVDA",
+      "cik": 1045810,
+      "issuer_name": "NVIDIA CORP",
+      "famous_owner": "Huang Jen-Hsun",
+      "note": "Jensen Huang \u2014 the canonical 10b5-1 scheduled-sale teaching case."
+    },
+    {
+      "ticker": "META",
+      "cik": 1326801,
+      "issuer_name": "Meta Platforms, Inc.",
+      "famous_owner": "Zuckerberg Mark",
+      "note": "Mark Zuckerberg."
+    },
+    {
+      "ticker": "AMD",
+      "cik": 2488,
+      "issuer_name": "ADVANCED MICRO DEVICES INC",
+      "famous_owner": "Su Lisa T",
+      "note": "Lisa Su."
+    },
+    {
+      "ticker": "AAPL",
+      "cik": 320193,
+      "issuer_name": "Apple Inc.",
+      "famous_owner": "Cook Timothy D",
+      "note": "Tim Cook."
+    },
+    {
+      "ticker": "MSFT",
+      "cik": 789019,
+      "issuer_name": "MICROSOFT CORP",
+      "famous_owner": "Nadella Satya",
+      "note": "Satya Nadella."
+    },
+    {
+      "ticker": "AMZN",
+      "cik": 1018724,
+      "issuer_name": "AMAZON COM INC",
+      "famous_owner": "Jassy Andrew R",
+      "note": "Andy Jassy."
+    },
+    {
+      "ticker": "DJT",
+      "cik": 1849635,
+      "issuer_name": "Trump Media & Technology Group Corp.",
+      "famous_owner": "",
+      "note": "Trump Media & Technology Group \u2014 the honest closest-to-Trump proxy. Presidents file only an annual OGE 278e; there is no per-trade Trump data."
+    }
+  ],
+  "featured_congress": [
+    {
+      "name": "Pelosi, Nancy",
+      "chamber": "house",
+      "note": "High-profile; large tech options via spouse."
+    },
+    {
+      "name": "Tuberville, Tommy",
+      "chamber": "senate",
+      "note": "One of the most active Senate filers."
+    },
+    {
+      "name": "Khanna, Ro",
+      "chamber": "house",
+      "note": "Very high filing volume in blind trusts \u2014 teaches volume != signal."
+    },
+    {
+      "name": "McCaul, Michael",
+      "chamber": "house",
+      "note": "Large, wide-ranging portfolio."
+    },
+    {
+      "name": "Gottheimer, Josh",
+      "chamber": "house",
+      "note": "Frequent, broad trading."
+    },
+    {
+      "name": "Greene, Marjorie Taylor",
+      "chamber": "house",
+      "note": "Active individual-stock filer."
+    },
+    {
+      "name": "Crenshaw, Dan",
+      "chamber": "house",
+      "note": "Active filer."
+    }
+  ]
+}

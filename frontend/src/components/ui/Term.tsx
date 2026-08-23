@@ -60,6 +60,18 @@ export function Term({
           <span className="mb-1.5 block text-[13px] font-semibold text-ink">
             {entry.term}
           </span>
+
+          {entry.analogy && (
+            <span className="mb-2 block rounded-lg border border-accent/20 bg-accent/5 px-2.5 py-1.5">
+              <span className="block text-[10px] font-semibold uppercase tracking-wide text-accent">
+                Think of it like
+              </span>
+              <span className="mt-0.5 block text-xs italic leading-relaxed text-ink/90">
+                {entry.analogy}
+              </span>
+            </span>
+          )}
+
           <span className="block text-xs leading-relaxed text-muted">{entry.what}</span>
 
           <span className="mt-2.5 block text-[10px] font-semibold uppercase tracking-wide text-accent">

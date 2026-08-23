@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!DOCTYPE ownershipDocument [
+  <!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<ownershipDocument>
+  <issuer>
+    <issuerTradingSymbol>XXE</issuerTradingSymbol>
+  </issuer>
+  <reportingOwner>
+    <reportingOwnerId><rptOwnerName>&xxe;</rptOwnerName></reportingOwnerId>
+  </reportingOwner>
+</ownershipDocument>

@@ -17,7 +17,11 @@ export function FlagChip({ flag, compact = false }: { flag: RiskFlag; compact?: 
   const Icon = flag.kind === "risk" ? AlertTriangle : ShieldCheck;
   return (
     <InfoPop
-      content={`${flag.label} — ${flag.why}\n\nWhat vets do: ${flag.what_vets_do}`}
+      content={
+        `${flag.label} — ${flag.why}` +
+        (flag.analogy ? `\n\nThink of it like: ${flag.analogy}` : "") +
+        `\n\nWhat vets do: ${flag.what_vets_do}`
+      }
       align="left"
     >
       <span
@@ -66,6 +70,12 @@ function FlagDetail({ flag }: { flag: RiskFlag }) {
       {open && (
         <div className="space-y-1.5 px-3 pb-2.5 pl-[30px] text-[11px] leading-relaxed">
           <p className="text-muted">{flag.why}</p>
+          {flag.analogy && (
+            <p className="italic text-ink/80">
+              <span className="mr-1 font-medium not-italic text-accent">Think of it like:</span>
+              {flag.analogy}
+            </p>
+          )}
           <p className="text-faint">
             <span className="font-medium text-muted">What vets do: </span>
             {flag.what_vets_do}

@@ -81,9 +81,23 @@ def test_tone_taxonomy_is_closed():
 
 def test_no_advice_language_anywhere():
     for r in _all_readings():
-        blob = f"{r.headline} {r.detail} {r.caveat}"
+        blob = f"{r.headline} {r.detail} {r.caveat} {r.analogy}"
         match = FORBIDDEN.search(blob)
         assert match is None, f"advice-like phrasing in {r.aspect}: {match.group(0)!r}"
+
+
+def test_every_reading_has_an_analogy():
+    """Metaphor-first teaching: every branch ships an everyday-life picture."""
+    for r in _all_readings():
+        assert len(r.analogy.strip()) > 20, f"{r.aspect}/{r.headline} has no analogy"
+        assert r.analogy != r.detail, f"{r.aspect} analogy just repeats the detail"
+
+
+def test_no_reading_copy_says_median():
+    """Protects the digest's ``txt.count('median') <= 2`` budget at the source."""
+    for r in _all_readings():
+        blob = f"{r.headline} {r.detail} {r.caveat} {r.analogy}".lower()
+        assert "median" not in blob, f"the word 'median' leaked into {r.aspect}"
 
 
 # --------------------------------------------------------------------------- #

@@ -51,7 +51,8 @@ def _rsi_factor(rsi14: float | None) -> float:
 
 
 def _analyze_one(
-    m: StockMetrics, adj: pd.Series, lookback_days: int
+    m: StockMetrics, adj: pd.Series, lookback_days: int,
+    benchmark: pd.Series | None = None,
 ) -> tuple[float, float, EchoStatsModel | None] | None:
     """(depth_pct, depth_rank, echo) for one stock, or None if not a setup."""
     if len(adj) < lookback_days + 5:
@@ -79,7 +80,7 @@ def _analyze_one(
         )
         stats = echo_stats(
             adj, episodes, RADAR_FORWARD_DAYS, RADAR_MIN_EPISODES,
-            kind="exact", min_depth_pct=bucket[0],
+            kind="exact", min_depth_pct=bucket[0], benchmark=benchmark,
         )
         if stats is None:
             # Tier 2: widen to "any dip at least this deep", stepping the floor
@@ -99,7 +100,7 @@ def _analyze_one(
                 )
                 stats = echo_stats(
                     adj, episodes, RADAR_FORWARD_DAYS, RADAR_MIN_EPISODES,
-                    kind="at_least", min_depth_pct=floor,
+                    kind="at_least", min_depth_pct=floor, benchmark=benchmark,
                 )
                 if stats is not None:
                     break
@@ -117,6 +118,11 @@ def _analyze_one(
                 bucket_hi=bucket[1],
                 n_years=stats.n_years,
                 confidence=stats.confidence,
+                p25_pct=stats.p25_pct,
+                p75_pct=stats.p75_pct,
+                n_benchmarked=stats.n_benchmarked,
+                beat_benchmark=stats.beat_benchmark,
+                median_excess_pct=stats.median_excess_pct,
             )
     return today_depth, depth_rank, echo
 
@@ -125,6 +131,7 @@ def _build(budget: float | None, lookback: str, limit: int) -> RadarResponse:
     metrics, latest = analytics.universe_metrics()
     closes = analytics.universe_closes()
     lookback_days = RADAR_LOOKBACKS[lookback]
+    benchmark = closes.get("VOO")  # opportunity-cost yardstick for every echo
 
     candidates: list[tuple[StockMetrics, float, float, EchoStatsModel | None]] = []
     for ticker, m in metrics.items():
@@ -133,7 +140,7 @@ def _build(budget: float | None, lookback: str, limit: int) -> RadarResponse:
         adj = closes.get(ticker)
         if adj is None:
             continue
-        analyzed = _analyze_one(m, adj, lookback_days)
+        analyzed = _analyze_one(m, adj, lookback_days, benchmark)
         if analyzed is None:
             continue
         depth_pct, depth_rank, echo = analyzed
@@ -165,7 +172,10 @@ def _build(budget: float | None, lookback: str, limit: int) -> RadarResponse:
                 entry_score=round(score, 1),
                 entry_factors=factors,
                 echo=echo,
-                flags=[RiskFlag(**vars(f)) for f in risks],
+                flags=[
+                    RiskFlag(**vars(f), analogy=flags_service.flag_analogy(f.code))
+                    for f in risks
+                ],
             )
         )
 
@@ -202,10 +212,11 @@ def radar_for_ticker(ticker: str) -> RadarRow | None:
     ticker = ticker.upper()
     metrics, _ = analytics.universe_metrics()
     m = metrics.get(ticker)
-    adj = analytics.universe_closes().get(ticker)
+    closes = analytics.universe_closes()
+    adj = closes.get(ticker)
     if m is None or adj is None:
         return None
-    analyzed = _analyze_one(m, adj, RADAR_LOOKBACKS["3m"])
+    analyzed = _analyze_one(m, adj, RADAR_LOOKBACKS["3m"], closes.get("VOO"))
     if analyzed is None:
         return None
     depth_pct, depth_rank, echo = analyzed

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import yfinance as yf
 
-from ..config import DEFAULT_BUDGET, WATCHLIST, display_name
+from ..config import DEFAULT_BUDGET, WATCHLIST, display_name, settings
 from ..models import CalendarResponse, EarningsEvent, MacroEvent
 
 _MACRO_PATH = Path(__file__).resolve().parent.parent / "data" / "macro_2026.json"
@@ -40,9 +40,18 @@ def _next_earnings(ticker: str, today: dt.date) -> dt.date | None:
         return None
 
 
+def _watchlist_tickers() -> list[str]:
+    try:
+        from . import watchlist as watchlist_service
+
+        return watchlist_service.tickers()
+    except Exception:
+        return list(WATCHLIST)
+
+
 def _tracked_tickers() -> list[str]:
     """Watchlist plus a few top screener picks — kept small (earnings fetch is slow)."""
-    tickers = [t for t in WATCHLIST if t != "VOO"]
+    tickers = [t for t in _watchlist_tickers() if t != settings.benchmark]
     try:
         from . import analytics
 

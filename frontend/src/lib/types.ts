@@ -15,6 +15,9 @@ export interface WatchlistCard {
   unusual_volume: boolean;
   big_mover: boolean;
   sparkline: number[];
+  role?: string | null;
+  role_story?: string | null;
+  role_lesson?: string | null;
 }
 
 export interface SectorTile {
@@ -206,6 +209,11 @@ export interface EchoStats {
   bucket_hi?: number;
   n_years?: number;
   confidence?: "high" | "medium" | "low";
+  p25_pct?: number | null;
+  p75_pct?: number | null;
+  n_benchmarked?: number;
+  beat_benchmark?: number;
+  median_excess_pct?: number | null;
 }
 
 export interface RiskFlag {
@@ -215,6 +223,7 @@ export interface RiskFlag {
   severity: "high" | "medium" | "low";
   why: string;
   what_vets_do: string;
+  analogy?: string;
 }
 
 export interface WatchoutRow {
@@ -235,6 +244,7 @@ export interface Reading {
   detail: string;
   tone: "constructive" | "caution" | "neutral";
   caveat: string;
+  analogy?: string;
 }
 export interface RadarRow {
   row: StockRow;
@@ -253,6 +263,126 @@ export interface RadarResponse {
   horizon_days: number;
   weights: Record<string, number>;
   rows: RadarRow[];
+}
+
+// --- Learn (the watchlist through the teaching lens) ---
+export type BasketGroup = "mega" | "umbrella" | "wildcard" | "benchmark" | "scout";
+
+export interface BasketMember {
+  ticker: string;
+  name: string;
+  role: string;
+  group: BasketGroup;
+  role_story: string;
+  role_lesson: string;
+  role_source: "curated" | "archetype";
+  source: "seed" | "user";
+  added_at: string | null;
+  price: number | null;
+  change_pct: number | null;
+  vol_90d: number | null;
+  ret_1y: number | null;
+  above_ma200: boolean | null;
+  depth_pct: number | null;
+  max_drawdown_1y: number | null;
+  range_52w_position: number | null;
+  since_added_pct: number | null;
+  since_added_voo_pct: number | null;
+  spark: number[];
+  series_1y: number[];
+  series_start: string | null;
+  regime_1y: boolean[];
+  rain: (number | null)[];
+  echo: EchoStats | null;
+  flag_codes: string[];
+  attention: number;
+  measurable: boolean;
+}
+
+// The correlation map + its skeleton (minimum spanning tree).
+export interface ConstellationNode {
+  ticker: string;
+  x: number;
+  y: number;
+}
+export interface ConstellationEdge {
+  a: string;
+  b: string;
+  r: number;
+}
+export interface Constellation {
+  nodes: ConstellationNode[];
+  mst: ConstellationEdge[];
+}
+
+export interface WatchEvent {
+  ticker: string;
+  name: string;
+  code: string;
+  headline: string;
+  detail: string;
+  tone: "constructive" | "caution" | "neutral";
+  severity: number;
+}
+
+export interface BasketResponse {
+  as_of: string;
+  roles_as_of: string;
+  laws: string[];
+  members: BasketMember[];
+  correlation: CorrelationMatrix;
+  correlation_note: string;
+  benchmark_ticker: string;
+  events: WatchEvent[];
+  rain_dates: string[];
+  constellation: Constellation;
+}
+
+// --- Cone of uncertainty (the honest forecast) ---
+export interface ConePoint {
+  session: number;
+  p10: number;
+  p25: number;
+  p50: number;
+  p75: number;
+  p90: number;
+}
+export interface ConeBenchmark {
+  ticker: string;
+  name: string;
+  bands: ConePoint[];
+  end: ConePoint;
+}
+export interface ConeResponse {
+  ticker: string;
+  name: string;
+  as_of: string;
+  horizon_sessions: number;
+  start_price: number;
+  n_paths: number;
+  n_history_sessions: number;
+  vol_annualized_pct: number;
+  bands: ConePoint[];
+  sample_paths: number[][];
+  end: ConePoint;
+  samples_up: number;
+  samples_down: number;
+  benchmark: ConeBenchmark | null;
+  caveat: string;
+}
+
+// --- Watchlist management ---
+export interface WatchlistEntry {
+  ticker: string;
+  name: string;
+  added_at: string;
+  added_price: number | null;
+  source: "seed" | "user";
+  active: boolean;
+}
+export interface WatchlistResponse {
+  entries: WatchlistEntry[];
+  hidden: WatchlistEntry[];
 }
 
 // --- Compare ---
@@ -330,6 +460,71 @@ export interface Fundamentals {
   fifty_two_week_high: number | null;
   fifty_two_week_low: number | null;
   fetched_at: string | null;
+}
+
+// --- Followed Filers (public insider & congressional disclosures) ---
+export interface DisclosedTrade {
+  source: "edgar" | "house" | "senate";
+  filing_id: string;
+  filer: string;
+  filer_role: string;
+  ticker: string;
+  name: string;
+  asset_class: "equity" | "option" | "other";
+  action: "buy" | "sell" | "grant" | "other";
+  trade_date: string;
+  filed_date: string;
+  lag_days: number;
+  shares: number | null;
+  price: number | null;
+  value_lo: number;
+  value_hi: number;
+  scheduled: boolean;
+  url: string;
+  priceable: boolean;
+  since_trade_pct: number | null;
+  since_filed_pct: number | null;
+  lag_tax_pct: number | null;
+  voo_since_filed_pct: number | null;
+}
+
+export interface FilerBaseRate {
+  filer: string;
+  window_days: number;
+  n: number;
+  median_fwd_pct: number;
+  win_rate: number;
+  worst_pct: number;
+  best_pct: number;
+  p25_pct: number | null;
+  p75_pct: number | null;
+  n_years: number;
+  confidence: "high" | "medium" | "low";
+  n_benchmarked: number;
+  beat_benchmark: number;
+  median_excess_pct: number | null;
+  median_lag_days: number;
+}
+
+export interface FilerNotice {
+  code: string;
+  headline: string;
+  detail: string;
+  tone: "constructive" | "caution" | "neutral";
+  caveat: string;
+  tickers: string[];
+  filers: string[];
+}
+
+export interface FilersResponse {
+  as_of: string;
+  kind: "all" | "insider" | "congress";
+  source_label: string;
+  filings_through: string | null;
+  note: string;
+  trades: DisclosedTrade[];
+  base_rates: FilerBaseRate[];
+  notices: FilerNotice[];
 }
 
 // --- Calendar ---

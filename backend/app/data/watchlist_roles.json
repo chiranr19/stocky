@@ -1,0 +1,109 @@
+{
+  "as_of": "2026-08-21",
+  "snapshot_note": "Hand-curated teaching roles for the watchlist, written from the 2026-08-21 analysis session. Numbers inside the stories are frozen to that date on purpose; live numbers come from the API. Refresh deliberately (rewrite the stories), never automatically. Every string must pass the same no-advice copy law as insights and flags: no buy/sell/should phrasing, no forbidden statistics jargon, no links.",
+  "laws": [
+    "Ceiling and floor travel together: the same swings that make the best case make the worst one.",
+    "The 200-day line is where a sale becomes a verdict.",
+    "A base rate without its sample size and its worst case is a story, not a statistic.",
+    "Every pick owes one honest answer: what did VOO do over the same stretch?",
+    "A basket sold as a single story is concentration wearing the costume of diversification."
+  ],
+  "roles": {
+    "NVDA": {
+      "role": "The headline act",
+      "group": "mega",
+      "story": "The name on every marquee right now, the stock the whole AI story gets told through. Attention like that cuts both ways: the same spotlight that lifts it fastest also turns every stumble into front-page news.",
+      "lesson": "The loudest stock in the room is priced for the story everyone already knows."
+    },
+    "AAPL": {
+      "role": "The fortress",
+      "group": "mega",
+      "story": "A walled garden of loyal customers who rarely leave and quietly spend a little more each year. Its strength is how boring it is: steady, defended, hard to dislodge, which is also why dramatic bargains in it are rare.",
+      "lesson": "Durable businesses rarely go on sale; when they do, it is usually the whole market on sale, not them."
+    },
+    "MSFT": {
+      "role": "The landlord",
+      "group": "mega",
+      "story": "It collects rent in the form of cloud subscriptions and software seats that renew whether the year is good or bad. Recurring income makes the ride smoother than most, but everyone already knows it, so the price reflects it.",
+      "lesson": "Predictable income earns a calmer chart and a fuller price tag at the same time."
+    },
+    "GOOGL": {
+      "role": "The toll road",
+      "group": "mega",
+      "story": "Most trips across the internet still pass a booth it owns, and that toll funds everything else it tries. The risk is a regulator or a rival deciding the road ought to have more than one booth.",
+      "lesson": "A business built on one toll booth is only as safe as its permission to keep charging."
+    },
+    "AMZN": {
+      "role": "The anchor tenant",
+      "group": "mega",
+      "story": "The mall's biggest store, the one the smaller shops orient themselves around. As of the reading it was trending up and sitting about 9% off its recent high: a sale rack, not a closing-down sign. In 31 similar past dips, 21 were higher a month later, and the roughest of them kept sliding another 14% first.",
+      "lesson": "A dip above the 200-day line is a price; the same dip below it is a verdict."
+    },
+    "TSLA": {
+      "role": "The rollercoaster",
+      "group": "mega",
+      "story": "Part car company, part belief system, its price swings on the story as much as on the sales. Believers and doubters trade it back and forth, so the ride is loud in both directions.",
+      "lesson": "When a price runs on a story, the story's mood swings become your account's swings."
+    },
+    "AMD": {
+      "role": "The understudy",
+      "group": "mega",
+      "story": "The number-two chipmaker forever chasing the headliner. When the whole stage is hot it can outrun the star; when the crowd cools, the understudy is the first to feel the empty seats.",
+      "lesson": "The challenger amplifies the leader's weather: better on the way up, harsher on the way down."
+    },
+    "META": {
+      "role": "The comeback story",
+      "group": "mega",
+      "story": "Written off once, then back in the lead, a reminder that even giants have bad chapters and some of them turn the page. The scar tissue is the lesson: the recovery was real, and so was the year of pain before it.",
+      "lesson": "Yesterday's disaster and tomorrow's comeback can be the same company on two different days."
+    },
+    "VST": {
+      "role": "The fallen star",
+      "group": "wildcard",
+      "story": "A five-year run of roughly +731% that then gave back about 28% in a single year, drifting toward its 52-week low: the band that once sold out stadiums now playing half-empty rooms. It carries the value-trap and volatility-trap patterns at once, and in nine similar past dips it trailed simply holding VOO in five of them.",
+      "lesson": "A spectacular past and a good entry are different things, sold at the same window."
+    },
+    "FE": {
+      "role": "One of four umbrellas",
+      "group": "umbrella",
+      "story": "One of four regulated utilities in this list that move almost as one, with pairwise correlation across the group running 0.61 to 0.88. Calm on its own, around 20% volatility with a worst drop near 15%, but as of the reading it sat below its 200-day line, like all four siblings.",
+      "lesson": "Four names that move together are not four bets; they are one bet wearing four coats."
+    },
+    "AEP": {
+      "role": "One of four umbrellas",
+      "group": "umbrella",
+      "story": "A grid utility that trades in near-lockstep with FE, DTE and CMS: steady, around 20% volatility, worst yearly drop near 12%. Owning it plus its three siblings feels diversified and is not, because they rise and fall on the same weather.",
+      "lesson": "When the correlation is high, the second copy adds risk, not safety."
+    },
+    "DTE": {
+      "role": "One of four umbrellas",
+      "group": "umbrella",
+      "story": "Another of the four utilities that leak in the same seam during a storm. Quiet in normal weather at around 20% volatility, it spent the reading below its 200-day line alongside the rest of the family.",
+      "lesson": "A calm stock in a crowded corner is still crowded; the calm and the concentration are separate facts."
+    },
+    "CMS": {
+      "role": "One of four umbrellas",
+      "group": "umbrella",
+      "story": "The fourth umbrella, sitting right at its 52-week low as of the reading, which is why it also trips the value-trap pattern. Same low volatility as its siblings, same broken 200-day line, same shared fate.",
+      "lesson": "Cheapest of a matched set usually means the whole set is out of favour, not that one is a bargain."
+    },
+    "VIST": {
+      "role": "A different weather system",
+      "group": "wildcard",
+      "story": "An Argentine oil producer that barely correlates with anything else here: its own weather. It had the strongest one-year chart in the group, around +73% with an intact trend, but the chart cannot draw the country and commodity risks underneath, and its worst similar dip fell another 22%.",
+      "lesson": "The risks that never show up on the chart are the ones that surprise you most."
+    },
+    "XE": {
+      "role": "The lottery ticket",
+      "group": "wildcard",
+      "story": "A newly public nuclear developer with only about 83 trading days of history and roughly 106% volatility: it fell 62% and then bounced 17% inside a single month. With too little past to measure, it cannot even be placed on the risk map.",
+      "lesson": "Unplottable means unmeasurable risk, not no risk; a blank history is a warning, not a clean slate."
+    },
+    "VOO": {
+      "role": "The boring winner",
+      "group": "benchmark",
+      "story": "The whole S&P 500 in one holding, the tortoise every exciting pick in this app gets raced against. Over the past five years it beat six of the eight names in this basket, and it did so with the shallowest worst drop of the lot.",
+      "lesson": "The boring benchmark is the bar; a pick only earns its risk by clearing it."
+    }
+  }
+}

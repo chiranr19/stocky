@@ -8,6 +8,8 @@ import { fmtPct, toneClass } from "@/lib/format";
 import { SectionHeader } from "@/components/ui/primitives";
 import { Term } from "@/components/ui/Term";
 import { TeachBanner } from "@/components/learn/TeachBanner";
+import { PageLesson } from "@/components/learn/PageLesson";
+import { PAGE_LESSONS } from "@/lib/pageLessons";
 import { ErrorCard, Loading } from "@/components/ui/States";
 import { NormalizedChart, colorFor } from "@/components/compare/NormalizedChart";
 import { CorrelationGrid } from "@/components/compare/CorrelationGrid";
@@ -57,6 +59,8 @@ export default function ComparePage() {
           <Term k="voo">VOO</Term> — growth, risk, and how alike they really are.
         </p>
       </div>
+
+      <PageLesson {...PAGE_LESSONS.compare} />
 
       {/* Picker */}
       <div className="card flex flex-wrap items-center gap-2 p-3">

@@ -8,6 +8,8 @@ import type { CalendarResponse } from "@/lib/types";
 import { fmtDate } from "@/lib/format";
 import { SectionHeader } from "@/components/ui/primitives";
 import { TeachBanner } from "@/components/learn/TeachBanner";
+import { PageLesson } from "@/components/learn/PageLesson";
+import { PAGE_LESSONS } from "@/lib/pageLessons";
 import { Loading } from "@/components/ui/States";
 
 const KIND_STYLE: Record<string, string> = {
@@ -31,6 +33,8 @@ export default function CalendarPage() {
           The dates that move stocks — earnings and the macro releases everyone watches.
         </p>
       </div>
+
+      <PageLesson {...PAGE_LESSONS.calendar} />
 
       <TeachBanner>
         Stocks often jump on scheduled dates, not random news. Earnings reset a company&apos;s

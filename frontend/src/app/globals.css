@@ -60,3 +60,92 @@
   background: rgba(255, 255, 255, 0.12);
   border-radius: 999px;
 }
+
+/* ---------------------------------------------------------------------------
+ * Touch & standalone-app polish (phone over Tailscale, Add-to-Home-Screen).
+ * Everything here is additive and global on purpose: it upgrades legibility
+ * and feel on touch devices without editing any component file.
+ * ------------------------------------------------------------------------- */
+
+/* Keep iOS from auto-inflating text in landscape and from painting its own
+   grey tap flash — we provide our own feedback below. */
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Edge-to-edge on notched phones (viewport-fit=cover): the sticky header
+   extends behind the status bar, and content stays out of the hardware zones.
+   No-ops entirely on desktop, where the insets are 0. */
+body > div,
+body {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+header.sticky {
+  padding-top: env(safe-area-inset-top);
+}
+footer {
+  padding-bottom: calc(2.5rem + env(safe-area-inset-bottom));
+}
+
+/* Visible keyboard focus — the quality floor, quiet until you tab. */
+:focus-visible {
+  outline: 2px solid rgba(124, 107, 255, 0.8);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (pointer: coarse) {
+  /* Legibility floor on touch screens: the desktop grid's smallest annotation
+     sizes are too small at arm's length. Raising them here scales every
+     evidence line, chip, and caption app-wide without touching components. */
+  .text-\[10px\] {
+    font-size: 11px;
+    line-height: 1.45;
+  }
+  .text-\[11px\] {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .text-\[9px\] {
+    font-size: 10.5px;
+  }
+
+  /* Tap feedback: every control answers the finger — quick dim + settle,
+     which reads as responsiveness rather than decoration. */
+  a,
+  button {
+    transition:
+      opacity 150ms ease-out,
+      transform 150ms ease-out;
+  }
+  a:active,
+  button:active {
+    opacity: 0.6;
+    transition-duration: 60ms;
+  }
+
+  /* Roomier touch targets in the nav row and toggles (32px → ~40px). */
+  nav a {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  /* Popovers (Term / InfoPop) are the app's teaching surface — give them more
+     width and breathing room on phones, where they were desktop-sized. */
+  [role="dialog"] {
+    max-width: min(20rem, calc(100vw - 2rem));
+  }
+}
+
+/* Motion is meaning, and optional. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

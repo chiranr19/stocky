@@ -46,6 +46,11 @@ class Settings(BaseSettings):
     # Reserved for the Daily Brief job. Never hardcode a key.
     anthropic_api_key: str = ""
 
+    # SEC EDGAR fair-access policy wants a descriptive User-Agent with contact
+    # info on every request. Set this in .env (and as a GitHub Actions secret for
+    # the cron); never committed. Empty ⇒ the filers ingest refuses to fetch.
+    edgar_user_agent: str = ""
+
     @property
     def duckdb_path(self) -> Path:
         return self.data_dir / "stocky.duckdb"
@@ -118,7 +123,12 @@ MACRO_META: dict[str, dict[str, str]] = {
 # Watchlist (seeded highlights, shown compact on the Pulse page)
 # --------------------------------------------------------------------------- #
 WATCHLIST: list[str] = [
-    "NVDA", "AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "AMD", "META", "VOO",
+    "NVDA", "AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "AMD", "META",
+    # AI power-buildout basket (added 2026-08-22): grid utilities + nuclear/energy
+    # names. VIST and XE are not S&P 500 members — they ingest fine but carry no
+    # sector, so they sit outside the per-sector Stocky score.
+    "VST", "FE", "AEP", "DTE", "CMS", "VIST", "XE",
+    "VOO",
 ]
 
 # Friendly overrides for the watchlist (constituents file names are used for the
@@ -133,7 +143,19 @@ COMPANY_NAMES: dict[str, str] = {
     "AMD": "Advanced Micro Devices",
     "META": "Meta Platforms",
     "VOO": "Vanguard S&P 500 ETF",
+    # Non-S&P watchlist members (no constituents-file name to fall back on).
+    "VIST": "Vista Energy (ADR)",
+    "XE": "X-Energy",
 }
+
+
+# Hand-curated teaching roles for the watchlist (committed snapshot; numbers in
+# the stories are frozen to ``as_of``). Powers the /learn page and the digest's
+# "cast" section. See app/data/watchlist_roles.json for the provenance note.
+_ROLES = json.loads((_DATA_DIR / "watchlist_roles.json").read_text(encoding="utf-8"))
+ROLES_AS_OF: str = _ROLES["as_of"]
+MARKET_LAWS: list[str] = _ROLES["laws"]
+WATCHLIST_ROLES: dict[str, dict[str, str]] = _ROLES["roles"]
 
 
 def display_name(ticker: str) -> str:
@@ -205,3 +227,48 @@ RADAR_LOOKBACKS = {"1m": 21, "2m": 42, "3m": 63}
 
 # Data-quality guard: a single-day move larger than this is logged as an anomaly.
 ANOMALY_DAY_MOVE_PCT = 40.0
+
+
+# --------------------------------------------------------------------------- #
+# Followed Filers (v0.8) — public insider & congressional disclosure tracking.
+# Loaded from the committed snapshot app/data/tracked_filers.json (regenerate via
+# scripts/build_filers.py). Studying legally-required public disclosures; every
+# surface stays educational — never advice, never a copy-trade signal.
+# --------------------------------------------------------------------------- #
+def _load_tracked_filers() -> dict:
+    path = _DATA_DIR / "tracked_filers.json"
+    if not path.exists():  # snapshot optional — feature degrades to empty
+        return {"snapshot_date": "", "issuers": [], "featured_congress": []}
+    with path.open(encoding="utf-8") as f:
+        return json.load(f)
+
+
+_FILERS = _load_tracked_filers()
+FILERS_SNAPSHOT_DATE: str = _FILERS.get("snapshot_date", "")
+TRACKED_ISSUERS: list[dict] = _FILERS.get("issuers", [])
+FEATURED_CONGRESS: list[dict] = _FILERS.get("featured_congress", [])
+
+# ticker → issuer CIK, and the spotlighted reporting owner per company (if any).
+ISSUER_CIK_BY_TICKER: dict[str, int] = {i["ticker"]: int(i["cik"]) for i in TRACKED_ISSUERS}
+FAMOUS_OWNER_BY_TICKER: dict[str, str] = {
+    i["ticker"]: i.get("famous_owner", "") for i in TRACKED_ISSUERS
+}
+
+# EDGAR access etiquette + bounded-run guards.
+EDGAR_INITIAL_LOOKBACK_DAYS = 400  # first run (no watermark) reaches back this far
+EDGAR_MAX_FILINGS_PER_RUN = 200    # hard cap so a run is always bounded
+EDGAR_MIN_REQUEST_INTERVAL = 0.5   # seconds between requests (limit is ~10/s; we go slow)
+EDGAR_REQUEST_TIMEOUT = 20         # per-request seconds
+
+# Cross-validation: a Form 4 price this far outside the day's low–high band (from
+# our OWN price cache) is quarantined as a suspect parse, not trusted.
+FILER_PRICE_TOLERANCE = 0.20       # ±20%
+
+# Notice hygiene: distinct tracked filers buying the same ticker within this many
+# days is a "cluster" worth surfacing (10b5-1 scheduled sales excluded upstream).
+FILER_CLUSTER_WINDOW_DAYS = 14
+
+# Base rates: forward windows measured FROM the disclosure (filed) date — the only
+# date a follower could have acted on. Same confidence tiers as the radar echoes.
+FILER_FORWARD_WINDOWS = {"1m": 21, "3m": 63}
+FILER_MIN_EPISODES = 4             # fewer disclosed buys than this → "thin history"

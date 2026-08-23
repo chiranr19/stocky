@@ -16,10 +16,14 @@ from .db import get_connection
 from .routers import (
     analytics,
     calendar,
+    cone,
+    filers,
+    learn,
     pulse,
     stock,
     system,
     timemachine,
+    watchlist,
 )
 from .services import market
 
@@ -44,6 +48,10 @@ app.include_router(stock.router)
 app.include_router(calendar.router)
 app.include_router(pulse.router)
 app.include_router(timemachine.router)
+app.include_router(filers.router)
+app.include_router(learn.router)
+app.include_router(watchlist.router)
+app.include_router(cone.router)
 
 
 @app.on_event("startup")
@@ -64,8 +72,8 @@ def root() -> dict[str, object]:
         "disclaimer": "Educational tool. Not financial advice.",
         "endpoints": [
             "/overview", "/sectors", "/movers", "/radar", "/watchouts",
-            "/riskmap", "/signals",
-            "/compare", "/stock/{ticker}", "/calendar",
+            "/riskmap", "/signals", "/filers", "/learn/basket", "/watchlist",
+            "/compare", "/cone", "/stock/{ticker}", "/calendar",
             "/timemachine", "/universe", "/health/data", "/docs",
         ],
     }

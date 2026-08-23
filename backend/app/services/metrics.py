@@ -142,6 +142,92 @@ def correlation_matrix(series_by_ticker: dict[str, pd.Series], window: int = 126
     return {"labels": labels, "matrix": matrix}
 
 
+def _distance_matrix(corr: dict) -> tuple[list[str], np.ndarray] | None:
+    """(labels, D) where D_ij = sqrt(2(1-ρ_ij)) — the standard metric that turns a
+    correlation matrix into distances (perfectly correlated → 0, anticorrelated →
+    2). None when there aren't at least two well-formed rows."""
+    labels = list(corr.get("labels", []))
+    matrix = corr.get("matrix", [])
+    n = len(labels)
+    if n < 2 or len(matrix) != n or any(len(row) != n for row in matrix):
+        return None
+    r = np.clip(np.array(matrix, dtype=float), -1.0, 1.0)
+    d = np.sqrt(np.maximum(2.0 * (1.0 - r), 0.0))
+    np.fill_diagonal(d, 0.0)
+    return labels, d
+
+
+def mds_layout(corr: dict) -> list[dict]:
+    """Place each name on a plane by classical multidimensional scaling of the
+    correlation distances — names that move together land close, independent
+    names drift apart. Deterministic: eigenvector orientation is pinned so the
+    same matrix always yields the same (x, y). Coords normalized to [-1, 1].
+
+    This is the standard 2-D embedding of a correlation structure; the plane is a
+    flattening of a higher-dimensional truth, so distances are approximate.
+    """
+    labels = list(corr.get("labels", []))
+    dm = _distance_matrix(corr)
+    if dm is None:
+        return [{"ticker": t, "x": 0.0, "y": 0.0} for t in labels]
+    labels, d = dm
+    n = len(labels)
+    d2 = d ** 2
+    j = np.eye(n) - np.ones((n, n)) / n          # double-centering operator
+    b = -0.5 * j @ d2 @ j
+    vals, vecs = np.linalg.eigh(b)               # ascending, symmetric
+    top = np.argsort(vals)[::-1][:2]
+    scale = np.sqrt(np.maximum(vals[top], 0.0))
+    coords = vecs[:, top] * scale                # (n, 2)
+    # Pin orientation: the point with the largest magnitude on each axis is made
+    # positive, so a sign flip in eigh never moves the layout.
+    for axis in range(coords.shape[1]):
+        col = coords[:, axis]
+        anchor = int(np.argmax(np.abs(col)))
+        if col[anchor] < 0:
+            coords[:, axis] = -col
+    max_abs = float(np.max(np.abs(coords))) or 1.0
+    coords = coords / max_abs
+    out = []
+    for i, t in enumerate(labels):
+        x = round(float(coords[i, 0]), 3)
+        y = round(float(coords[i, 1]), 3) if coords.shape[1] > 1 else 0.0
+        out.append({"ticker": t, "x": x, "y": y})
+    return out
+
+
+def mst_edges(corr: dict) -> list[dict]:
+    """The minimum spanning tree over correlation distances (Mantegna 1999) — the
+    threshold-free skeleton of a correlation network. Returns n-1 edges
+    ``{a, b, r}`` (r = the underlying correlation). Prim's algorithm, ties broken
+    by index for determinism. The globally closest pair is always an edge."""
+    dm = _distance_matrix(corr)
+    if dm is None:
+        return []
+    labels, d = dm
+    matrix = corr["matrix"]
+    n = len(labels)
+    in_tree = [False] * n
+    in_tree[0] = True
+    dist = [float(d[0, j]) for j in range(n)]
+    parent = [0] * n
+    edges: list[dict] = []
+    for _ in range(n - 1):
+        best, best_d = -1, float("inf")
+        for k in range(n):
+            if not in_tree[k] and dist[k] < best_d:
+                best_d, best = dist[k], k
+        if best == -1:
+            break
+        in_tree[best] = True
+        a, b = parent[best], best
+        edges.append({"a": labels[a], "b": labels[b], "r": round(float(matrix[a][b]), 3)})
+        for k in range(n):
+            if not in_tree[k] and float(d[best, k]) < dist[k]:
+                dist[k], parent[k] = float(d[best, k]), best
+    return edges
+
+
 def return_histogram(adj_close: pd.Series, bins: int = 21, clip_pct: float = 8.0) -> dict:
     """Distribution of daily % returns, clipped to ±clip_pct for a readable shape."""
     rets = (adj_close.pct_change().dropna() * 100.0).clip(-clip_pct, clip_pct)
@@ -179,6 +265,15 @@ class EchoStats:
     # than the same count spread across different market regimes.
     n_years: int = 0
     confidence: str = "low"  # 'high' | 'medium' | 'low'
+    # Spread of outcomes: the middle half [p25, p75] says far more about the
+    # range of what happened than a single median.
+    p25_pct: float | None = None
+    p75_pct: float | None = None
+    # Opportunity cost: the same forward windows measured on the benchmark
+    # (VOO). "It bounced +3%" means little if the index did +4% sitting still.
+    n_benchmarked: int = 0  # episodes where the benchmark had data too
+    beat_benchmark: int = 0  # of those, how many beat the benchmark
+    median_excess_pct: float | None = None  # median (stock - benchmark) return
 
 
 def rolling_high(series: pd.Series, window: int) -> pd.Series:
@@ -245,8 +340,13 @@ def echo_stats(
     min_episodes: int,
     kind: str = "exact",
     min_depth_pct: float = 0.0,
+    benchmark: pd.Series | None = None,
 ) -> EchoStats | None:
-    """Forward-return stats over episode starts; None when the sample is too thin."""
+    """Forward-return stats over episode starts; None when the sample is too thin.
+
+    ``benchmark`` (VOO adj closes) measures opportunity cost: the same forward
+    windows on the index, so every bounce is judged against just holding VOO.
+    """
     fwd = forward_returns(adj_close, horizon)
     used: list[pd.Timestamp] = []
     outcomes: list[float] = []
@@ -268,6 +368,21 @@ def echo_stats(
     else:
         confidence = "low"
 
+    n_benchmarked = 0
+    beat_benchmark = 0
+    median_excess: float | None = None
+    if benchmark is not None:
+        bench_fwd = forward_returns(benchmark, horizon)
+        excesses = [
+            out - float(bench_fwd.loc[ts])
+            for ts, out in zip(used, outcomes)
+            if ts in bench_fwd.index and not np.isnan(bench_fwd.loc[ts])
+        ]
+        if excesses:
+            n_benchmarked = len(excesses)
+            beat_benchmark = int(sum(1 for x in excesses if x > 0))
+            median_excess = round(float(np.median(excesses)), 2)
+
     return EchoStats(
         n=len(arr),
         median_fwd_pct=round(float(np.median(arr)), 2),
@@ -278,6 +393,11 @@ def echo_stats(
         min_depth_pct=round(min_depth_pct, 1),
         n_years=n_years,
         confidence=confidence,
+        p25_pct=round(float(np.percentile(arr, 25)), 2),
+        p75_pct=round(float(np.percentile(arr, 75)), 2),
+        n_benchmarked=n_benchmarked,
+        beat_benchmark=beat_benchmark,
+        median_excess_pct=median_excess,
     )
 
 
