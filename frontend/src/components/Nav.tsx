@@ -58,7 +58,11 @@ export function Nav() {
             ))}
           </nav>
 
-          <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+          {/* On a phone this cluster is ~10 segmented pills + freshness + ⌘K —
+              too wide for one line, so let it wrap (justify-end keeps the rows
+              tidy) instead of forcing a horizontal body scroll. On lg+ it all
+              fits inline, so the wrap never triggers. */}
+          <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
             <BudgetControl />
             <LensControl />
             <FreshnessBadge health={health} />
