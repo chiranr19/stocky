@@ -1,3 +1,4 @@
+// ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { BudgetProvider } from "@/lib/budget";

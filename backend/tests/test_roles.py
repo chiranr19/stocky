@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Tests for the curated watchlist roles + the /learn basket builder.
 
 Covers: role coverage and taxonomy, the no-advice copy law over every curated

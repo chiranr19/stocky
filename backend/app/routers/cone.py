@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """GET /cone — the cone of uncertainty for one ticker.
 
 A range of plausible futures resampled from the stock's own past daily moves —

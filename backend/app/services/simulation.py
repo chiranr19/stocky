@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Pure simulation math for the Time Machine.
 
 Everything here is deliberately free of network or database access so it can be

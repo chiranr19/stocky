@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """The what-changed engine — plain-English, day-over-day events on the watchlist.
 
 Stateless: yesterday's view is simply today's frame minus its last row, so there

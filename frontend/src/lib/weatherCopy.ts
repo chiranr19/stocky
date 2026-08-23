@@ -1,3 +1,4 @@
+// ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 // Weather-station copy for the market-conditions strip. Kept in one file so the
 // copy-law test can scan it as text: no advice verbs, no forbidden statistics
 // jargon, no links. Bands mirror the backend insights.py thresholds so the icon

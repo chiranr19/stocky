@@ -1,3 +1,4 @@
+// ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 import { Info } from "lucide-react";
 
 // Persistent, honest framing — this is a learning tool, never advice.

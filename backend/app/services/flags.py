@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Named patterns that make a setup good or bad — the showcase for both sides.
 
 The Entry Radar answers "which dips are worth studying". This module answers

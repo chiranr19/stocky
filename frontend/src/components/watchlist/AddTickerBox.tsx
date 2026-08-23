@@ -1,3 +1,4 @@
+// ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";

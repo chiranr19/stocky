@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Build the Stocky daily email digest — HTML + plain-text.
 
 Every sentence is template-assembled from computed values produced by the

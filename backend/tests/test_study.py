@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Tests for the v1.0 study-viz backend: constellation math + basket study fields.
 
 The v0.5 lesson — every pass-through seam gets a regression test — so rain,

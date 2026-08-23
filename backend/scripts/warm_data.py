@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Synchronous full-universe ingest for CI / digest pipeline.
 
 Reuses the same chunked yfinance download + DuckDB upsert that the FastAPI

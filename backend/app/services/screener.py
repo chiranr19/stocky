@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Transparent per-sector stock screener.
 
 Ranks the *affordable* (≤ budget), *liquid* members of each sector by a 0–100

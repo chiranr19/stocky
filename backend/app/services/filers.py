@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Followed Filers (v0.8): study public insider & congressional disclosures.
 
 What this is, precisely: corporate insiders must file **SEC Form 4** within two

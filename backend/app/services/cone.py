@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """The cone of uncertainty — a Monte Carlo range of plausible futures.
 
 The only honest "forecast" in the app: instead of a single predicted price, we

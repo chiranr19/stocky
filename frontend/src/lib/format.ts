@@ -1,3 +1,4 @@
+// ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 export function fmtCurrency(n: number, maxFrac = 2): string {
   return n.toLocaleString("en-US", {
     style: "currency",

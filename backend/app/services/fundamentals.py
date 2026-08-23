@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """On-demand fundamentals via yfinance ``.info``, cached ~1 day in DuckDB.
 
 ``.info`` is slow and occasionally flaky, so it is never bulk-fetched — only

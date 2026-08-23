@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Tests for the reading layer — every branch fires, and nothing gives advice."""
 
 from __future__ import annotations

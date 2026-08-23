@@ -1,3 +1,4 @@
+// ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 // Plain-English explanations for every metric and term Stocky surfaces.
 // Tone: second person, honest about limits. `whenItLies` is the point — a metric
 // you can't be fooled by is a metric you actually understand. `analogy` is the

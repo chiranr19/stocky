@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """GET /learn/basket — the watchlist told as teaching stories with live numbers.
 
 Budget-free by design: the watchlist is a fixed cast, so unlike the S&P-wide

@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Application configuration and static reference data.
 
 The S&P 500 universe, company names, and sector map are loaded from a committed

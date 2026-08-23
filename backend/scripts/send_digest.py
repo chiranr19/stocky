@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Send the Stocky daily digest via Gmail SMTP.
 
 Reads GMAIL_USER, GMAIL_APP_PASSWORD, DIGEST_TO from env (GitHub repo secrets

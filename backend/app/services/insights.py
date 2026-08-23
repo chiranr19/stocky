@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """The reading layer: turn numbers into plain-English interpretation.
 
 Answers the question a beginner actually has in front of a chart — *the line is

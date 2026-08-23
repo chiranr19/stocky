@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Audit the cached market data for gaps, bad prices, and logged anomalies.
 
 Run any time you want to trust the numbers on screen:

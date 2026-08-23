@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Incremental ingest of public Form 4 disclosures for tracked filers.
 
 Bounded, idempotent, resumable (per-issuer watermark) — safe to run daily from

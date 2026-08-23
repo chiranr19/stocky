@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Tests for the archetype engine — total, exclusive, and law-abiding."""
 
 from __future__ import annotations

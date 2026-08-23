@@ -1,3 +1,4 @@
+// ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 // Teaching copy for the v1.0 study wall — metaphor ledes, the "where this lies
 // to you" line under each chart, and the methodology explainers. Kept out of the
 // components so the copy law can scan it as plain text (no advice phrasing, no

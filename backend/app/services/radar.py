@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Entry Radar: pullback setups ranked and validated against each stock's history.
 
 For every eligible stock, measure how far it trades below its recent 1M/2M/3M

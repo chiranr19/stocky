@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """GET/POST/DELETE /watchlist — the app's first mutations: manage the living list.
 
 Adding a ticker fetches its full history (so echoes work immediately) and is

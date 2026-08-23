@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Regenerate app/data/sp500_constituents.json from a public constituents CSV.
 
 Run manually when you want to refresh the S&P 500 membership snapshot:

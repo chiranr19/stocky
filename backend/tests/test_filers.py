@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Tests for Followed Filers — parsing, the integrity pipeline, the math, the law.
 
 Zero network: every test drives real fixture files or synthetic data. The bars

@@ -1,3 +1,4 @@
+// ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 import type { MetadataRoute } from "next";
 
 // Web app manifest — auto-served at /manifest.webmanifest and auto-linked.

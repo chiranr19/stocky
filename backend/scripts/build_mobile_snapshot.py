@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Render a self-contained, phone-first HTML snapshot of the Stocky dashboard.
 
 Usage (backend must be running on :8000):

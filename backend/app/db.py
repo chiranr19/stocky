@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """DuckDB access layer.
 
 A single connection guarded by a lock. FastAPI runs sync endpoints in a thread

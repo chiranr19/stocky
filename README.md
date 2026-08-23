@@ -1,3 +1,5 @@
+> **© 2026 Chiranjeev (@chiranr19) — All Rights Reserved.** This project is **source-available for viewing only**; it is *not* open source. No copying, reuse, modification, deployment, or redistribution of any part of it (or its underlying ideas) without prior written permission — see [LICENSE](./LICENSE) and [SIGNATURE](./SIGNATURE). Prospective employers and collaborators are welcome to read the code.  ·  authorship sigil `5FEN·NYU3·G7KN·XVL7`
+
 # Stocky 📈
 
 **A stock-market learning dashboard: pro analysis views with beginner captions.**

@@ -1,3 +1,4 @@
+// ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 import type { StudyCopy } from "@/lib/studyCopy";
 
 /** The metaphor lede for a study section, plus an optional data-driven line that

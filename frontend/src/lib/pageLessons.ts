@@ -1,3 +1,4 @@
+// ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 // Metaphor ledes for the pages that aren't the six-act /learn tour. Kept in one
 // file so the copy-law test can scan them: no advice verbs, no forbidden
 // statistics jargon, no links.

@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Pydantic response models for the API.
 
 These mirror the TypeScript types in ``frontend/src/lib/types.ts`` — keep the

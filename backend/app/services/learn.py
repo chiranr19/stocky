@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """The watchlist through the teaching lens — powers /learn and the digest cast.
 
 Read-only over the analytics metrics cache (never fetches inline), the same

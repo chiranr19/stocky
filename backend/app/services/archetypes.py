@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Auto-archetypes — a deterministic character for any uncurated ticker.
 
 A user-added name (DVA, or whatever catches the eye) has no hand-written role,

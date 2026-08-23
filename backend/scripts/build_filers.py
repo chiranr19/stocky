@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Regenerate app/data/tracked_filers.json — the committed list of filers to track.
 
 Resolves the *issuer* CIK for each tracked company from SEC EDGAR's official

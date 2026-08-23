@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """Shared pytest fixtures.
 
 ``db`` swaps the shared DuckDB connection for a throwaway in-memory one (schema

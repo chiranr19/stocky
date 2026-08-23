@@ -1,3 +1,4 @@
+# ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 """The living watchlist — the user's editable cast, persisted in DuckDB.
 
 Seeded once from ``config.WATCHLIST`` (plus DVA); after that the ``watchlist``

@@ -1,3 +1,4 @@
+// ✦ @chiranr19 · © 2026 All Rights Reserved · proprietary · sigil:5FENNYU3G7KNXVL7
 "use client";
 
 // Tiny dependency-free sparkline. Colored by net direction over the window.
