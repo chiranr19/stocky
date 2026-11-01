@@ -98,9 +98,24 @@ def _since_added(series: pd.Series | None, added_at: dt.date | None) -> float | 
 def _member(ticker: str, m: StockMetrics | None, adj: pd.Series | None,
             benchmark: pd.Series | None, entry=None,
             ticker_events: list | None = None,
-            rain_dates: list | None = None) -> BasketMember:
+            rain_dates: list | None = None,
+            data_ends: dt.date | None = None,
+            latest: dt.date | None = None) -> BasketMember:
     curated = WATCHLIST_ROLES.get(ticker)
-    if curated is not None:
+    if curated is None and data_ends is not None and latest is not None:
+        # A stopped feed: metrics are withheld upstream, so say why plainly
+        # rather than let the archetype engine call it a young listing.
+        stale = archetypes.assign_stale(ticker, data_ends, latest)
+        base = dict(
+            ticker=ticker,
+            name=display_name(ticker),
+            role=stale["role"],
+            group=stale["group"],
+            role_story=stale["story"],
+            role_lesson=stale["lesson"],
+            role_source="archetype",
+        )
+    elif curated is not None:
         base = dict(
             ticker=ticker,
             name=display_name(ticker),
@@ -125,6 +140,7 @@ def _member(ticker: str, m: StockMetrics | None, adj: pd.Series | None,
     added_at = getattr(entry, "added_at", None)
     base["source"] = getattr(entry, "source", "seed")
     base["added_at"] = added_at
+    base["data_ends"] = data_ends
 
     # Study-viz payloads (computed once; shared by both return paths). The race
     # line, its trend barcode, and the rain strip all derive from here.
@@ -180,10 +196,12 @@ def _build(
     tickers: list[str] | None = None,
     entries: dict | None = None,
     events: list | None = None,
+    stale: dict[str, dt.date] | None = None,
 ) -> BasketResponse:
     order = tickers if tickers is not None else WATCHLIST
     entries = entries or {}
     events = events or []
+    stale = stale or {}
     by_ticker: dict[str, list] = {}
     for ev in events:
         by_ticker.setdefault(ev.ticker, []).append(ev)
@@ -195,7 +213,7 @@ def _build(
     members = [
         _member(t, metrics.get(t), closes.get(t), benchmark,
                 entry=entries.get(t), ticker_events=by_ticker.get(t),
-                rain_dates=rain_dates)
+                rain_dates=rain_dates, data_ends=stale.get(t), latest=latest)
         for t in order
     ]
 
@@ -247,14 +265,16 @@ def build_basket() -> BasketResponse:
 
     metrics, latest = analytics.universe_metrics()
     closes = analytics.universe_closes()
+    stale = analytics.stale_tickers()
     tickers = watchlist_service.tickers()
     entries = {e.ticker: e for e in watchlist_service.entries()}
-    evts = events_service.build_events(tickers)
+    evts = events_service.build_events(tickers, as_of=latest)
     key = analytics._cache["key"]
     with _lock:
         if _basket_cache["key"] == key and _basket_cache["value"] is not None:
             return _basket_cache["value"]
-    value = _build(metrics, closes, latest, tickers=tickers, entries=entries, events=evts)
+    value = _build(metrics, closes, latest, tickers=tickers, entries=entries, events=evts,
+                   stale=stale)
     with _lock:
         _basket_cache.update(key=key, value=value)
     return value

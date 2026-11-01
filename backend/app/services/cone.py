@@ -139,6 +139,13 @@ def _build(ticker: str, horizon: int) -> ConeResponse:
     ticker = ticker.upper()
     closes = analytics.universe_closes()
     metrics, as_of = analytics.universe_metrics()
+    data_ends = analytics.stale_tickers().get(ticker)
+    if data_ends is not None:
+        raise ValueError(
+            f"{display_name(ticker)}'s price data ends {data_ends:%Y-%m-%d}, well before "
+            f"the market's latest close ({as_of:%Y-%m-%d}). A cone needs a live starting "
+            "point — one drawn from a frozen price would read as a forecast it isn't."
+        )
     adj = closes.get(ticker)
     if adj is None:
         raise KeyError(ticker)

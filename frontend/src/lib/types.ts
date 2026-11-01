@@ -279,6 +279,8 @@ export interface BasketMember {
   role_source: "curated" | "archetype";
   source: "seed" | "user";
   added_at: string | null;
+  /** Set when its feed stopped — live numbers are withheld. */
+  data_ends?: string | null;
   price: number | null;
   change_pct: number | null;
   vol_90d: number | null;
@@ -447,6 +449,9 @@ export interface StockDetail {
   readings: Reading[];
   flags: RiskFlag[];
   risk_score: number;
+  /** Set when the price feed stopped well before the market's latest session. */
+  data_ends?: string | null;
+  data_note?: string | null;
 }
 export interface Fundamentals {
   ticker: string;

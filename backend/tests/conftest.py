@@ -35,7 +35,7 @@ def db():
     from app.services import analytics, filers, learn
 
     def _reset() -> None:
-        analytics._cache.update(key=None, metrics={}, latest=None, closes={})
+        analytics._cache.update(key=None, metrics={}, latest=None, closes={}, stale={})
         filers._cache.update(key=None, by_params={})
         learn._basket_cache.update(key=None, value=None)
         try:

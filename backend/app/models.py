@@ -347,6 +347,9 @@ class BasketMember(BaseModel):
     role_source: str = Field(default="curated", description="curated | archetype (derived from the numbers).")
     source: str = Field(default="seed", description="seed | user — how it joined the watchlist.")
     added_at: date | None = None
+    data_ends: date | None = Field(
+        default=None, description="Set when its feed stopped: live numbers are withheld."
+    )
     # Live numbers — all optional so a young listing (XE) degrades to 'unmeasurable'.
     price: float | None = None
     change_pct: float | None = None
@@ -529,6 +532,12 @@ class StockDetail(BaseModel):
     readings: list[Reading] = []  # how to read this stock's current chart
     flags: list[RiskFlag] = []  # named risk/strength patterns
     risk_score: float = 0.0
+    data_ends: date | None = Field(
+        default=None,
+        description="Set when this ticker's feed stopped well before the market's "
+        "latest session: its numbers are frozen here and it's left out of rankings.",
+    )
+    data_note: str | None = Field(default=None, description="Plain-English 'data ends' note.")
 
 
 class Fundamentals(BaseModel):

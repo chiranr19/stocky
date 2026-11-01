@@ -11,11 +11,13 @@ Pure and deterministic (ties break by ticker) so it unit-tests cleanly.
 
 from __future__ import annotations
 
+import datetime as dt
 from collections import defaultdict
 from dataclasses import dataclass
 
-from ..config import MIN_DOLLAR_VOLUME, SCORE_WEIGHTS
+from ..config import MIN_DOLLAR_VOLUME, SCORE_WEIGHTS, STALE_SESSIONS
 from .metrics import StockMetrics
+from .trading_calendar import sessions_behind
 
 
 @dataclass(frozen=True)
@@ -83,6 +85,15 @@ def _score_group(members: list[StockMetrics]) -> list[ScoredStock]:
 
     scored.sort(key=lambda s: (-s.score, s.ticker))
     return scored
+
+
+def is_stale(
+    last_bar: dt.date, universe_latest: dt.date, max_sessions: int = STALE_SESSIONS
+) -> bool:
+    """True when a ticker's newest bar trails the universe's newest bar by more
+    than ``max_sessions`` trading sessions — a stopped feed whose last bar would
+    otherwise be ranked as if it were today's."""
+    return sessions_behind(last_bar, universe_latest) > max_sessions
 
 
 def is_eligible(m: StockMetrics, budget: float | None) -> bool:

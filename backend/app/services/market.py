@@ -70,6 +70,10 @@ class MarketDataError(RuntimeError):
     """Raised when data cannot be fetched or is unavailable for a ticker."""
 
 
+class StaleDataError(MarketDataError):
+    """Price data exists but stops well before the market's latest session."""
+
+
 def _utcnow() -> dt.datetime:
     """Timezone-naive UTC now (DuckDB TIMESTAMP columns are naive)."""
     return dt.datetime.now(dt.UTC).replace(tzinfo=None)

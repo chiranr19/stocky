@@ -20,6 +20,9 @@ import pandas as pd
 from ..config import WATCHLIST
 from ..db import db_lock
 from . import market
+from .market import StaleDataError
+from .screener import is_stale
+from .trading_calendar import sessions_behind
 
 # A deliberately loose ticker shape: letters, digits, dot, dash, caret (for the
 # odd class share / index). Anything else is rejected before a network fetch.
@@ -133,7 +136,8 @@ def _fetch_history(ticker: str) -> pd.DataFrame:
 def add(ticker: str) -> WatchlistEntry:
     """Add or restore a ticker. Idempotent: an already-active name is returned
     unchanged. Raises ValueError for a malformed symbol, MarketDataError for one
-    with no price data."""
+    with no price data, and StaleDataError (a MarketDataError) for one whose data
+    stops more than STALE_SESSIONS behind the rest of the universe."""
     ticker = ticker.strip().upper()
     if not _TICKER_RE.match(ticker):
         raise ValueError(f"'{ticker}' is not a valid ticker symbol.")
@@ -154,6 +158,16 @@ def add(ticker: str) -> WatchlistEntry:
     added_price = float(df["close"].iloc[-1])
 
     with db_lock() as con:
+        # A stopped feed (halt, delisting, merger) would sit on the list with a
+        # frozen price that reads as today's — refuse it, naming the last date.
+        universe_latest = con.execute("SELECT MAX(date) FROM prices").fetchone()[0]
+        if universe_latest is not None and is_stale(added_at, universe_latest):
+            raise StaleDataError(
+                f"{ticker}'s price data ends {added_at:%Y-%m-%d}, "
+                f"{sessions_behind(added_at, universe_latest)} trading sessions behind "
+                f"the market's latest close ({universe_latest:%Y-%m-%d}). A stopped "
+                "feed can't be tracked, so it wasn't added."
+            )
         if existing is not None:
             # Restore: reactivate, PRESERVING the original added_at/price/source.
             con.execute(

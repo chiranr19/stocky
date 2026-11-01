@@ -46,8 +46,10 @@ export function AddTickerBox({ onChanged }: { onChanged: () => void }) {
       await addToWatchlist(t);
       onChanged();
     } catch (e) {
+      // A 404 carries the server's reason: an unknown symbol, or a stopped feed
+      // with the date its data ends.
       const msg = (e as { status?: number }).status === 404
-        ? `No price data for '${t}' — check the symbol.`
+        ? (e as Error).message || `No price data for '${t}' — check the symbol.`
         : (e as { status?: number }).status === 422
           ? "That doesn't look like a ticker."
           : (e as Error).message;
