@@ -15,6 +15,7 @@ gets exactly one character. Curated JSON always wins over an archetype upstream.
 
 from __future__ import annotations
 
+import datetime as dt
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -180,4 +181,21 @@ def assign(m: StockMetrics | None, sessions: int) -> dict[str, str]:
         "group": ARCHETYPE_GROUP,
         "story": a.story(m, sessions),
         "lesson": a.lesson,
+    }
+
+
+def assign_stale(ticker: str, data_ends: dt.date, latest: dt.date) -> dict[str, str]:
+    """Same shape as assign(), for a name whose price feed stopped. Its metrics are
+    withheld upstream, and without this it would read as a young listing ("only 0
+    sessions"), which is false: the past is there, the present isn't."""
+    return {
+        "role": "The stopped clock",
+        "group": ARCHETYPE_GROUP,
+        "story": (
+            f"{ticker}'s price data ends {data_ends:%Y-%m-%d}, while the market's latest "
+            f"close is {latest:%Y-%m-%d}. A trading halt, a delisting, or a merger can "
+            "each stop a feed. Its last numbers are frozen, so it sits out the map, the "
+            "race, and the what-changed feed until fresh bars arrive."
+        ),
+        "lesson": "Check the date on a number before reading it — a frozen price looks just like a live one.",
     }

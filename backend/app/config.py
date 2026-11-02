@@ -229,6 +229,11 @@ RADAR_LOOKBACKS = {"1m": 21, "2m": 42, "3m": 63}
 # Data-quality guard: a single-day move larger than this is logged as an anomaly.
 ANOMALY_DAY_MOVE_PCT = 40.0
 
+# Data-freshness guard: a ticker whose newest bar trails the universe's newest bar
+# by more than this many trading sessions has a stopped feed (halt, delisting,
+# merger). Its frozen last bar is held out of every ranking and scan.
+STALE_SESSIONS = 5
+
 
 # --------------------------------------------------------------------------- #
 # Followed Filers (v0.8) — public insider & congressional disclosure tracking.

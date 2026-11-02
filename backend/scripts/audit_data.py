@@ -7,7 +7,8 @@ Run any time you want to trust the numbers on screen:
     python scripts/audit_data.py --verbose  # also list every anomaly
 
 Exits non-zero when it finds a real problem (missing sessions on a liquid
-ticker, non-positive prices, or tickers with too little history to analyze).
+ticker, non-positive prices, junk placeholder bars, or tickers with too little
+history to analyze).
 Stop the backend first — DuckDB allows a single writer process.
 """
 
@@ -33,6 +34,24 @@ from app.services.trading_calendar import is_trading_day, most_recent_session  #
 MIN_USABLE_SESSIONS = 300
 # Ignore stragglers older than this when checking for missing recent sessions.
 RECENT_WINDOW_DAYS = 30
+# A real session on a listed stock prints far more shares than this; fewer is a
+# placeholder bar from a halted or stopped feed (WBD, 2026-10-05: 40 shares).
+MIN_REAL_VOLUME = 100
+
+
+def junk_bars(con) -> list[tuple[str, int, dt.date]]:
+    """(ticker, rows, latest junk date) for bars with a zero/null open or a
+    near-empty volume print. Index levels (^VIX, ^TNX) carry no volume by
+    design, so they're exempt from the volume test."""
+    return con.execute(
+        """
+        SELECT ticker, COUNT(*), MAX(date) FROM prices
+        WHERE open IS NULL OR open <= 0
+           OR (ticker NOT LIKE '^%' AND (volume IS NULL OR volume < ?))
+        GROUP BY ticker ORDER BY 2 DESC, ticker
+        """,
+        [MIN_REAL_VOLUME],
+    ).fetchall()
 
 
 def expected_sessions(start: dt.date, end: dt.date) -> int:
@@ -116,6 +135,13 @@ def main() -> int:
     if bad:
         for t, n in bad[:15]:
             print(f"       {t:<6} {n} row(s)")
+        problems += 1
+
+    junk = junk_bars(con)
+    print(f"\nJunk bars (open = 0 or volume < {MIN_REAL_VOLUME}): {len(junk)} ticker(s)")
+    if junk:
+        for t, n, latest_junk in junk[:15]:
+            print(f"       {t:<6} {n} row(s), latest {latest_junk}")
         problems += 1
 
     # ------------------------------------------------- missing recent sessions

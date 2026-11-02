@@ -21,6 +21,7 @@ from . import flags as flags_service
 from . import market
 from .flags import GLOSSARY
 from .metrics import StockMetrics, compute_metrics, pullback_series
+from .screener import is_stale
 
 _lock = threading.Lock()
 _events_cache: dict = {"key": None, "value": None}
@@ -185,11 +186,16 @@ def detect_from_frame(ticker: str, df: pd.DataFrame) -> list[WatchEvent]:
     return detect(ticker, today, yday, ft, fy)
 
 
-def build_events(tickers: list[str] | None = None) -> list[WatchEvent]:
+def build_events(
+    tickers: list[str] | None = None, as_of: dt.date | None = None
+) -> list[WatchEvent]:
     """Watchlist events since yesterday, capped and severity-ordered.
 
     Read-only over the cached price frames (add() already fetched them);
-    memoized per analytics cache generation.
+    memoized per analytics cache generation. ``as_of`` is the universe's newest
+    session (the basket passes it): a frame whose last bar trails it — or the
+    newest frame here — by more than STALE_SESSIONS is a stopped feed, and its
+    frozen last bar is not news "since yesterday", so it emits nothing.
     """
     from . import analytics
     from . import watchlist as watchlist_service
@@ -200,19 +206,22 @@ def build_events(tickers: list[str] | None = None) -> list[WatchEvent]:
         except Exception:
             tickers = []
 
-    key = (analytics._cache["key"], tuple(tickers))
+    key = (analytics._cache["key"], tuple(tickers), as_of)
     with _lock:
         if _events_cache["key"] == key and _events_cache["value"] is not None:
             return _events_cache["value"]
 
     end = dt.date.today()
     start = end - market.HISTORY_LOOKBACK
-    frames = market.read_cached(tickers, start, end)
+    frames = {t: df for t, df in market.read_cached(tickers, start, end).items()
+              if not df.empty}
+    last_bar = {t: df.index.max().date() for t, df in frames.items()}
+    newest = max([d for d in (as_of, *last_bar.values()) if d is not None], default=None)
 
     events: list[WatchEvent] = []
     for ticker in tickers:
         df = frames.get(ticker)
-        if df is not None and not df.empty:
+        if df is not None and not is_stale(last_bar[ticker], newest):
             events += detect_from_frame(ticker, df)
 
     # Most urgent first: severity, then biggest daily move, then ticker.

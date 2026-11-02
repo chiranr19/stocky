@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Clock, Crosshair, GraduationCap, TrendingDown, TrendingUp } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, Clock, Crosshair, GraduationCap, TrendingDown, TrendingUp } from "lucide-react";
 import { getLearnBasket, getStock } from "@/lib/api";
 import type { BasketMember, StockDetail } from "@/lib/types";
 import { fmtCompact, fmtCurrency, fmtPct, toneClass } from "@/lib/format";
@@ -88,6 +88,14 @@ export default function StockPage() {
           </Link>
         </div>
       </div>
+
+      {/* Stopped feed: everything below is frozen at data_ends */}
+      {data.data_ends && (
+        <div role="note" className="card flex items-start gap-3 border-down/40 bg-down/10 p-4">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-down" />
+          <p className="text-sm leading-relaxed text-ink">{data.data_note ?? `Data ends ${data.data_ends}.`}</p>
+        </div>
+      )}
 
       {/* Metrics grid */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">

@@ -13,7 +13,7 @@ from fastapi import APIRouter, HTTPException, Response
 from ..config import display_name
 from ..models import WatchlistEntryModel, WatchlistResponse
 from ..services import watchlist as watchlist_service
-from ..services.market import MarketDataError
+from ..services.market import MarketDataError, StaleDataError
 
 router = APIRouter(tags=["watchlist"])
 
@@ -46,6 +46,9 @@ def add_ticker(ticker: str, response: Response) -> WatchlistEntryModel:
         entry = watchlist_service.add(ticker)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except StaleDataError as exc:
+        # The symbol is real but its feed stopped; the message names the date.
+        raise HTTPException(status_code=404, detail=str(exc)) from None
     except MarketDataError:
         raise HTTPException(
             status_code=404,

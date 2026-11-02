@@ -58,8 +58,9 @@ from .metrics import (
 )
 from . import flags as flags_service
 from . import insights
-from .screener import ScoredStock, is_eligible, screen_by_sector
+from .screener import ScoredStock, is_eligible, is_stale, screen_by_sector
 from .simulation import max_drawdown
+from .trading_calendar import sessions_behind
 
 _ANALYSIS_LOOKBACK = market.HISTORY_LOOKBACK
 _TD_1Y = 252
@@ -72,7 +73,9 @@ _TD_1Y = 252
 # and, folded into the cache key, it cascades the miss to every derived cache
 # (screen, watchouts, radar, basket, events, filers) that keys off _cache["key"].
 _lock = threading.Lock()
-_cache: dict = {"key": None, "gen": 0, "metrics": {}, "latest": None, "closes": {}}
+_cache: dict = {
+    "key": None, "gen": 0, "metrics": {}, "latest": None, "closes": {}, "stale": {},
+}
 _screen_cache: dict = {"key": None, "by_budget": {}}
 _watchouts_cache: dict = {"key": None, "by_params": {}}
 
@@ -96,39 +99,49 @@ def _max_date() -> dt.date | None:
         return con.execute("SELECT MAX(date) FROM prices").fetchone()[0]
 
 
-def _load_metrics() -> tuple[dict[str, StockMetrics], dt.date | None, dict[str, pd.Series]]:
+def _load_metrics() -> tuple[
+    dict[str, StockMetrics], dt.date | None, dict[str, pd.Series], dict[str, dt.date]
+]:
     end = dt.date.today()
     start = end - _ANALYSIS_LOOKBACK
     histories = market.read_cached(market.all_tickers(), start, end)
 
+    last_bar = {t: df.index.max().date() for t, df in histories.items()}
+    latest: dt.date | None = max(last_bar.values(), default=None)
+
     metrics: dict[str, StockMetrics] = {}
     closes: dict[str, pd.Series] = {}
-    latest: dt.date | None = None
+    stale: dict[str, dt.date] = {}
     for ticker, df in histories.items():
+        # A stopped feed (halt, delisting, merger) would rank its frozen last bar
+        # as if it were today's. Hold it out of the metrics — and so out of every
+        # screen, scan, and the basket — but remember where its data ends.
+        if latest is not None and is_stale(last_bar[ticker], latest):
+            stale[ticker] = last_bar[ticker]
+            continue
         m = compute_metrics(ticker, df)
         if m is not None:
             metrics[ticker] = m
             # Retained for the Entry Radar (pullback depth + historical echoes)
             # so it never has to re-query DuckDB per request.
             closes[ticker] = df["adj_close"].dropna()
-        d = df.index.max().date()
-        latest = d if latest is None else max(latest, d)
-    return metrics, latest, closes
+    return metrics, latest, closes, stale
 
 
 def universe_metrics() -> tuple[dict[str, StockMetrics], dt.date]:
     """Memoized per (data date, warm progress, generation); recomputes as warm-up
-    streams in or the watchlist changes."""
+    streams in or the watchlist changes. Stale tickers are left out (see
+    stale_tickers())."""
     with _lock:
         gen = _cache["gen"]
     key = (_max_date(), market.warm_state().loaded, gen)
     with _lock:
         if _cache["key"] == key and _cache["metrics"]:
             return _cache["metrics"], _cache["latest"]
-    metrics, latest, closes = _load_metrics()
+    metrics, latest, closes, stale = _load_metrics()
     latest = latest or dt.date.today()
     with _lock:
-        _cache.update(key=key, metrics=metrics, latest=latest, closes=closes)
+        _cache.update(key=key, metrics=metrics, latest=latest, closes=closes, stale=stale)
     return metrics, latest
 
 
@@ -137,6 +150,14 @@ def universe_closes() -> dict[str, pd.Series]:
     universe_metrics()  # ensure the cache is warm/current
     with _lock:
         return _cache["closes"]
+
+
+def stale_tickers() -> dict[str, dt.date]:
+    """Tickers held out of the metrics because their feed stopped, mapped to the
+    date their data ends. Same cache generation as universe_metrics()."""
+    universe_metrics()
+    with _lock:
+        return _cache["stale"]
 
 
 def _sector_scores(budget: float | None) -> dict[str, list[ScoredStock]]:
@@ -570,6 +591,22 @@ def build_stock_detail(ticker: str) -> StockDetail:
     if m is None:
         raise ValueError(f"Not enough price history for {ticker}.")
 
+    # A stopped feed stays viewable here, but says plainly that it's frozen —
+    # the rankings already leave it out (see _load_metrics).
+    _, universe_latest = universe_metrics()
+    last_bar = df.index.max().date()
+    data_ends = data_note = None
+    if is_stale(last_bar, universe_latest):
+        data_ends = last_bar
+        data_note = (
+            f"Data ends {last_bar:%Y-%m-%d}. {ticker}'s price feed stopped "
+            f"{sessions_behind(last_bar, universe_latest)} trading sessions before the "
+            f"market's latest close ({universe_latest:%Y-%m-%d}) — a trading halt, a "
+            "delisting, or a merger can each do this. Every number on this page is "
+            "frozen at that date, so it's left out of the rankings and scans, and "
+            "can't be added to the watchlist, until fresh bars arrive."
+        )
+
     # Scored only if it's an affordable S&P member at the default budget.
     scored = None
     gics = sector_of(ticker)
@@ -640,4 +677,6 @@ def build_stock_detail(ticker: str) -> StockDetail:
             for f in found
         ],
         risk_score=flags_service.risk_score(found),
+        data_ends=data_ends,
+        data_note=data_note,
     )
